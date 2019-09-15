@@ -1,0 +1,8 @@
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/install/strip.dir
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/edit_cache.dir
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/libqvr.dir
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/rebuild_cache.dir
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/list_install_components.dir
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/install/local.dir
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/install.dir
+/home/andrey/workspace/qvr/libqvr/CMakeFiles/libqvr_autogen.dir

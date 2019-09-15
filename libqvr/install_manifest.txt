@@ -1,0 +1,15 @@
+/usr/local/lib/libqvr.so.3.0.0
+/usr/local/lib/libqvr.so.3
+/usr/local/lib/libqvr.so
+/usr/local/include/qvr/app.hpp
+/usr/local/include/qvr/manager.hpp
+/usr/local/include/qvr/config.hpp
+/usr/local/include/qvr/device.hpp
+/usr/local/include/qvr/observer.hpp
+/usr/local/include/qvr/window.hpp
+/usr/local/include/qvr/process.hpp
+/usr/local/include/qvr/rendercontext.hpp
+/usr/local/include/qvr/outputplugin.hpp
+/usr/local/include/qvr/frustum.hpp
+/usr/local/lib/cmake/QVR-3.0.0/QVRConfig.cmake
+/usr/local/lib/cmake/QVR-3.0.0/QVRConfigVersion.cmake

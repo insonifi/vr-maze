@@ -1,0 +1,8 @@
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/install/strip.dir
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/edit_cache.dir
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/qvr-example-opengl.dir
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/rebuild_cache.dir
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/list_install_components.dir
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/install/local.dir
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/install.dir
+/home/andrey/workspace/qvr/qvr-example-opengl/CMakeFiles/qvr-example-opengl_autogen.dir

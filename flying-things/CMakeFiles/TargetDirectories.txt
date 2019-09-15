@@ -1,0 +1,8 @@
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/install/strip.dir
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/edit_cache.dir
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/flying-things.dir
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/rebuild_cache.dir
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/list_install_components.dir
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/install/local.dir
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/install.dir
+/home/andrey/workspace/qvr/flying-things/CMakeFiles/flying-things_autogen.dir
