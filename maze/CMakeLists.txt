@@ -21,7 +21,7 @@ link_directories(${QVR_LIBRARY_DIRS})
 qt5_add_resources(RESOURCES resources.qrc)
 add_executable(maze
     geometries.cpp geometries.hpp
-    main.cpp main.hpp drawable.cpp
+    main.cpp main.hpp drawable.cpp material.h
     ${RESOURCES})
 set_target_properties(maze PROPERTIES WIN32_EXECUTABLE TRUE)
 target_link_libraries(maze ${QVR_LIBRARIES} Qt5::Gui)
