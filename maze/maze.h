@@ -22,13 +22,15 @@ private:
     unsigned short _width;
     unsigned short _height;
     std::vector<Aabb> _aabb_list;
-    void init();
     void initMaze();
     std::vector<bool>::reference mazeBlockAt(unsigned short x, unsigned short y);
     void addRandomLoop();
     void generate();
+    void generateGeometry();
     void genFace(
             std::vector<QVector3D> *vertices,
+            std::vector<QVector3D> *normals,
+            std::vector<QVector2D> *texcoords,
             std::vector<unsigned short> *indices,
             QMatrix4x4 transform
             );

@@ -3,8 +3,11 @@
 
 #include <QOpenGLShaderProgram>
 #include <QOpenGLExtraFunctions>
+#include <QFile>
+#include <QImage>
 #include <vector>
 #include <memory>
+#include <iostream>
 #include <material.h>
 
 class Drawable : protected QOpenGLExtraFunctions
@@ -14,7 +17,7 @@ public:
     void update(QMatrix4x4 modelMatrix, float elapsedMilli);
     void render(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);
     void addChild(std::shared_ptr<Drawable> child);
-    void setMaterial(const Material &material);
+    void setMaterial(const Material material);
     void initBuffers(std::vector<QVector3D> *vertices
                      , std::vector<QVector3D> *normals
                      , std::vector<QVector2D> *texcoords
@@ -22,6 +25,13 @@ public:
     QOpenGLShaderProgram& getShader();
     GLuint& getVao();
     QMatrix4x4& getModelMatrix();
+    void loadShader(const char* vertShaderPath, const char* fragShaderPath);
+    unsigned int loadTexture(const QString& filename);
+    unsigned int loadTexture(const QImage& img);
+    static QString readFile(const char* fileName);
+    static void setGLES(bool isGLES);
+    static bool getGLES();
+    static bool isGLES;
 
 private:
     virtual void glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);

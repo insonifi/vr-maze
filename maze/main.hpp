@@ -30,24 +30,26 @@
 class QImage;
 
 #include <qvr/app.hpp>
+#include <drawable.h>
+#include <maze.h>
 
-class Material {
-public:
-    float r, g, b;
-    float kd, ks, shininess;
-    unsigned int diffTex;
-    unsigned int normTex;
-    unsigned int specTex;
-    float texCoordFactor;
-    Material() {}
-    Material(float r, float g, float b, float kd, float ks, float shininess,
-            unsigned int diffTex = 0, unsigned int normTex = 0, unsigned int specTex = 0,
-            float texCoordFactor = 1.0f) :
-        r(r), g(g), b(b), kd(kd), ks(ks), shininess(shininess),
-        diffTex(diffTex), normTex(normTex), specTex(specTex),
-        texCoordFactor(texCoordFactor)
-    {}
-};
+// class Material {
+// public:
+//     float r, g, b;
+//     float kd, ks, shininess;
+//     unsigned int diffTex;
+//     unsigned int normTex;
+//     unsigned int specTex;
+//     float texCoordFactor;
+//     Material() {}
+//     Material(float r, float g, float b, float kd, float ks, float shininess,
+//             unsigned int diffTex = 0, unsigned int normTex = 0, unsigned int specTex = 0,
+//             float texCoordFactor = 1.0f) :
+//         r(r), g(g), b(b), kd(kd), ks(ks), shininess(shininess),
+//         diffTex(diffTex), normTex(normTex), specTex(specTex),
+//         texCoordFactor(texCoordFactor)
+//     {}
+// };
 
 class Main : public QVRApp, protected QOpenGLExtraFunctions
 {
@@ -75,6 +77,7 @@ private:
     Material     _objectMaterials[5]; // Materials of the objects
     QMatrix4x4   _objectMatrices[5];  // Base transformation matrices of the objs
     QOpenGLShaderProgram _prg;        // GLSL program for rendering
+    std::shared_ptr<Drawable> _root;  // Scene root
     // Data to render device models
     QVector<unsigned int> _devModelVaos;
     QVector<unsigned int> _devModelVaoIndices;

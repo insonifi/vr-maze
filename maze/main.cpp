@@ -132,7 +132,7 @@ void Main::renderVao(const QMatrix4x4& projectionMatrix,
     _prg.setUniformValue("projection_model_view_matrix", projectionMatrix * modelViewMatrix);
     _prg.setUniformValue("normal_matrix", modelViewMatrix.normalMatrix());
     glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_SHORT, nullptr);
 }
 
 void Main::serializeDynamicData(QDataStream& ds) const
@@ -178,6 +178,7 @@ static QString readFile(const char* fileName)
     return in.readAll();
 }
 
+#if(0)
 bool Main::initProcess(QVRProcess* /* p */)
 {
     /* Initialize per-process OpenGL resources and state here */
@@ -365,6 +366,94 @@ void Main::render(QVRWindow* /* w */,
         glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, fboInvalidations);
     }
 }
+#endif
+
+#if(1)
+bool Main::initProcess(QVRProcess* /* p */)
+{
+    // Qt-based OpenGL function pointers
+    initializeOpenGLFunctions();
+
+    // FBO
+    glGenFramebuffers(1, &_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+    glGenTextures(1, &_fboDepthTex);
+    glBindTexture(GL_TEXTURE_2D, _fboDepthTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 1, 1,
+            0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _fboDepthTex, 0);
+
+     // Device model data
+     for (int i = 0; i < QVRManager::deviceModelVertexDataCount(); i++) {
+         _devModelVaos.append(setupVao(
+                     QVRManager::deviceModelVertexCount(i),
+                     QVRManager::deviceModelVertexPositions(i),
+                     QVRManager::deviceModelVertexNormals(i),
+                     QVRManager::deviceModelVertexTexCoords(i),
+                     QVRManager::deviceModelVertexIndexCount(i),
+                     QVRManager::deviceModelVertexIndices(i)));
+         _devModelVaoIndices.append(QVRManager::deviceModelVertexIndexCount(i));
+     }
+     for (int i = 0; i < QVRManager::deviceModelTextureCount(); i++) {
+         _devModelTextures.append(setupTex(QVRManager::deviceModelTexture(i)));
+     }
+
+    _root = std::make_shared<Maze>(16, 16);
+
+   return true;
+}
+
+void Main::render(QVRWindow* /* w */,
+        const QVRRenderContext& context, const unsigned int* textures)
+{
+    for (int view = 0; view < context.viewCount(); view++) {
+        // Get view dimensions
+        int width = context.textureSize(view).width();
+        int height = context.textureSize(view).height();
+        // Set up framebuffer object to render into
+        glBindTexture(GL_TEXTURE_2D, _fboDepthTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height,
+                0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+        glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[view], 0);
+        // Set up view
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        QMatrix4x4 projectionMatrix = context.frustum(view).toMatrix4x4();
+        QMatrix4x4 viewMatrix = context.viewMatrix(view);
+        // Set up shader program
+        glEnable(GL_DEPTH_TEST);
+        // Render scene
+
+        _root->render(viewMatrix, projectionMatrix);
+
+        // Render device models (optional)
+        for (int i = 0; i < QVRManager::deviceCount(); i++) {
+            const QVRDevice& device = QVRManager::device(i);
+            for (int j = 0; j < device.modelNodeCount(); j++) {
+                QMatrix4x4 nodeMatrix = device.matrix();
+                nodeMatrix.translate(device.modelNodePosition(j));
+                nodeMatrix.rotate(device.modelNodeOrientation(j));
+                int vertexDataIndex = device.modelNodeVertexDataIndex(j);
+                int textureIndex = device.modelNodeTextureIndex(j);
+                Material material(1.0f, 1.0f, 1.0f,
+                        1.0f, 0.0f, 0.0f,
+                        _devModelTextures[textureIndex], 0, 0,
+                        1.0f);
+                setMaterial(material);
+                renderVao(projectionMatrix, context.viewMatrixPure(view), nodeMatrix,
+                        _devModelVaos[vertexDataIndex],
+                        _devModelVaoIndices[vertexDataIndex]);
+            }
+        }
+        // Invalidate depth attachment (to help OpenGL ES performance)
+        const GLenum fboInvalidations[] = { GL_DEPTH_ATTACHMENT };
+        glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, fboInvalidations);
+    }
+}
+#endif
 
 void Main::keyPressEvent(const QVRRenderContext& /* context */, QKeyEvent* event)
 {
@@ -380,7 +469,9 @@ int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
     QVRManager manager(argc, argv);
+
     isGLES = (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
+    Drawable::setGLES(isGLES);
 
     /* First set the default surface format that all windows will use */
     QSurfaceFormat format;

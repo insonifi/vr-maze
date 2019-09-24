@@ -4,6 +4,16 @@ Maze::Maze(unsigned short width, unsigned short height) :
     Drawable("Maze"), _width(width), _height(height)
 {
     initMaze();
+    Drawable::loadShader(
+                ":vertex-shader.glsl"
+                , ":fragment-shader.glsl"
+                );
+    Drawable::setMaterial(
+                Material(0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+                         loadTexture(":floor-diff.jpg")
+                         , getGLES() ? 0 : loadTexture(":floor-norm.jpg"), 0, 10.0f
+                         )
+                );
 }
 
 void Maze::initMaze()
@@ -13,6 +23,10 @@ void Maze::initMaze()
               << std::endl;
 
     _maze.assign(static_cast<unsigned short> (_width * _height), false);
+    generate();
+    generateGeometry();
+    printMaze();
+    // generateAabb();
 }
 
 void Maze::addRandomLoop()
@@ -50,8 +64,6 @@ void Maze::generate()
 
     for (int i = 0; i < it; i++)
         addRandomLoop();
-
-    generateAabb();
 }
 
 void Maze::generateAabb()
@@ -146,12 +158,14 @@ void Maze::generateAabb()
     //             Aabb(QVector3D(0 - 0.5f, 0.5f, 0 - 0.5f), QVector3D(_width + 0.5f, 2.0f, _height + 0.5f))
     //             );
 
-    for (Aabb aabb : _aabb_list)
-        addChild(std::make_shared<Box>("box", aabb.getAB()));
+    // for (Aabb aabb : _aabb_list)
+    //     addChild(std::make_shared<Box>("box", aabb.getAB()));
 }
 
 void Maze::genFace(
         std::vector<QVector3D> *vertices,
+        std::vector<QVector3D> *normals,
+        std::vector<QVector2D> *texcoords,
         std::vector<unsigned short> *indices,
         QMatrix4x4 transform
         )
@@ -165,13 +179,26 @@ void Maze::genFace(
     QVector4D b = (transform * QVector4D(+ 0.5f, - 0.5, + 0.5f, 1.f));
     QVector4D c = (transform * QVector4D(- 0.5f, - 0.5, + 0.5f, 1.f));
     QVector4D d = (transform * QVector4D(- 0.5f, - 0.5, - 0.5f, 1.f));
+    QVector4D normal = (transform * QVector4D(0.f, 1.f, 0.f, 1.f));
+    QVector2D ta = QVector2D(1.0f, 0.f);
+    QVector2D tb = QVector2D(1.0f, 1.f);
+    QVector2D tc = QVector2D(0.0f, 1.f);
+    QVector2D td = QVector2D(0.0f, 0.f);
 
-    vertices->push_back(QVector3D(a));// 1
-    vertices->push_back(QVector3D(b));// 2
-    vertices->push_back(QVector3D(c));// 3
-    vertices->push_back(QVector3D(d));// 4
+    vertices->push_back(a.toVector3D());// 1
+    vertices->push_back(b.toVector3D());// 2
+    vertices->push_back(c.toVector3D());// 3
+    vertices->push_back(d.toVector3D());// 4
+    normals->push_back(normal.toVector3D());
+    normals->push_back(normal.toVector3D());
+    normals->push_back(normal.toVector3D());
+    normals->push_back(normal.toVector3D());
+    texcoords->push_back(ta);
+    texcoords->push_back(tb);
+    texcoords->push_back(tc);
+    texcoords->push_back(td);
 
-    int idx = static_cast<unsigned short> (vertices->size() - 1);
+    unsigned short idx = static_cast<unsigned short> (vertices->size() - 1);
 
     indices->push_back(idx - 1);
     indices->push_back(idx - 2);
@@ -182,7 +209,7 @@ void Maze::genFace(
     indices->push_back(idx - 0);
 }
 
-void Maze::init() {
+void Maze::generateGeometry() {
 
     std::vector<QVector3D> vertices;
     std::vector<QVector3D> normals;
@@ -197,43 +224,43 @@ void Maze::init() {
                 QMatrix4x4 t0 = QMatrix4x4();
                 t0.translate(QVector3D(x, 0.f, y));
 
-                genFace(&vertices, &indices, t0);
+                genFace(&vertices, &normals, &texcoords, &indices, t0);
 
                  /**  Walls **/
-                if (y + 1 > _height || !_maze.at((y + 1) * _width + x))
+                if (y + 1 > _height || !mazeBlockAt(x, y + 1))
                 {
                     QMatrix4x4 t = QMatrix4x4(t0);
                     t.rotate(-90.f, QVector3D(1, 0, 0));
 
-                    genFace(&vertices, &indices,  t);
+                    genFace(&vertices, &normals, &texcoords, &indices, t);
                 }
-                if (int(y) - 1 < 0 || !_maze.at((y - 1) * _width + x))
+                if (int(y) - 1 < 0 || !mazeBlockAt(x, y - 1))
                 {
                     QMatrix4x4 t = QMatrix4x4(t0);
                     t.rotate(90.0f, QVector3D(1, 0, 0));
 
-                    genFace(&vertices, &indices,  t);
+                    genFace(&vertices, &normals, &texcoords, &indices, t);
                 }
-                if (x + 1 > _width || !_maze.at(y * _width + x + 1))
+                if (x + 1 > _width || !mazeBlockAt(x + 1, y))
                 {
                     QMatrix4x4 t = QMatrix4x4(t0);
                     t.rotate(90.0f, QVector3D(0, 0, 1));
 
-                    genFace(&vertices, &indices,  t);
+                    genFace(&vertices, &normals, &texcoords, &indices, t);
                 }
-                if (int(x) - 1 < 0 || !_maze.at(y * _width + x - 1))
+                if (int(x) - 1 < 0 || !mazeBlockAt(x - 1, y))
                 {
                     QMatrix4x4 t = QMatrix4x4(t0);
                     t.rotate(-90.0f, QVector3D(0, 0, 1));
 
-                    genFace(&vertices, &indices,  t);
+                    genFace(&vertices, &normals, &texcoords, &indices, t);
                 }
 
                 // {
                 //     QMatrix4x4 t = QMatrix4x4(t0);
                 //     t.rotate(-180.0f, QVector3D(0, 1, 0));
 
-                //     genFace(&vertices, &indices,  t);
+                //	genFace(&vertices, &normals, &texcoords, &indices, t);
                 // }
             }
     Drawable::initBuffers(&vertices, &normals, &texcoords, &indices);
