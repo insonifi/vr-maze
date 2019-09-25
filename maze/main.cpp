@@ -481,6 +481,7 @@ int main(int argc, char* argv[])
         format.setProfile(QSurfaceFormat::CoreProfile);
         format.setVersion(3, 3);
     }
+    format.setOption(QSurfaceFormat::DebugContext);
     QSurfaceFormat::setDefaultFormat(format);
 
     /* Then start QVR with your app */

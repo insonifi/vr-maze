@@ -18,7 +18,7 @@ public:
     void render(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);
     void addChild(std::shared_ptr<Drawable> child);
     void setMaterial(const Material material);
-    void initBuffers(std::vector<QVector3D> *vertices
+    void initBuffers(  std::vector<QVector3D> *vertices
                      , std::vector<QVector3D> *normals
                      , std::vector<QVector2D> *texcoords
                      , std::vector<unsigned short> *indices);

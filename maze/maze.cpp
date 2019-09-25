@@ -6,7 +6,7 @@ Maze::Maze(unsigned short width, unsigned short height) :
     initMaze();
     Drawable::loadShader(
                 ":vertex-shader.glsl"
-                , ":fragment-shader.glsl"
+                , ":fragment-shader_dbg.glsl"
                 );
     Drawable::setMaterial(
                 Material(0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
@@ -175,24 +175,28 @@ void Maze::genFace(
     //   c(x, y)
     // 4   3
 
-    QVector4D a = (transform * QVector4D(+ 0.5f, - 0.5, - 0.5f, 1.f));
-    QVector4D b = (transform * QVector4D(+ 0.5f, - 0.5, + 0.5f, 1.f));
-    QVector4D c = (transform * QVector4D(- 0.5f, - 0.5, + 0.5f, 1.f));
-    QVector4D d = (transform * QVector4D(- 0.5f, - 0.5, - 0.5f, 1.f));
-    QVector4D normal = (transform * QVector4D(0.f, 1.f, 0.f, 1.f));
+    QVector3D a = (transform * QVector3D(+ 0.5f, - 0.5, - 0.5f));
+    QVector3D b = (transform * QVector3D(+ 0.5f, - 0.5, + 0.5f));
+    QVector3D c = (transform * QVector3D(- 0.5f, - 0.5, + 0.5f));
+    QVector3D d = (transform * QVector3D(- 0.5f, - 0.5, - 0.5f));
+
     QVector2D ta = QVector2D(1.0f, 0.f);
     QVector2D tb = QVector2D(1.0f, 1.f);
     QVector2D tc = QVector2D(0.0f, 1.f);
     QVector2D td = QVector2D(0.0f, 0.f);
 
-    vertices->push_back(a.toVector3D());// 1
-    vertices->push_back(b.toVector3D());// 2
-    vertices->push_back(c.toVector3D());// 3
-    vertices->push_back(d.toVector3D());// 4
-    normals->push_back(normal.toVector3D());
-    normals->push_back(normal.toVector3D());
-    normals->push_back(normal.toVector3D());
-    normals->push_back(normal.toVector3D());
+    QVector3D normal = (transform * QVector3D(0.f, 1.f, 0.f));
+
+    normal.normalize();
+
+    vertices->push_back(a);// 1
+    vertices->push_back(b);// 2
+    vertices->push_back(c);// 3
+    vertices->push_back(d);// 4
+    normals->push_back(normal);
+    normals->push_back(normal);
+    normals->push_back(normal);
+    normals->push_back(normal);
     texcoords->push_back(ta);
     texcoords->push_back(tb);
     texcoords->push_back(tc);

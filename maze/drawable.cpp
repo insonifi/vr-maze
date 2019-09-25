@@ -59,36 +59,40 @@ void Drawable::initBuffers(std::vector<QVector3D> *vertices
                            , std::vector<QVector2D> *texcoords
                            , std::vector<unsigned short> *indices)
 {
-    GLuint vao;
     GLuint positionBuf, normalBuf, texcoordBuf, indexBuf;
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glGenVertexArrays(1, &_vao);
+    glBindVertexArray(_vao);
+
     glGenBuffers(1, &positionBuf);
     glBindBuffer(GL_ARRAY_BUFFER, positionBuf);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (vertices->size() * sizeof (QVector3D)), vertices->data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
+
     glGenBuffers(1, &normalBuf);
     glBindBuffer(GL_ARRAY_BUFFER, normalBuf);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (normals->size() * sizeof (QVector3D)), normals->data(), GL_STATIC_DRAW);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(1);
+
     glGenBuffers(1, &texcoordBuf);
     glBindBuffer(GL_ARRAY_BUFFER, texcoordBuf);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (texcoords->size() * sizeof (QVector2D)), texcoords->data(), GL_STATIC_DRAW);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(2);
+
     glGenBuffers(1, &indexBuf);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuf);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr> (indices->size() * sizeof(unsigned short)), indices->data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
     glDeleteBuffers(1, &positionBuf);
     glDeleteBuffers(1, &normalBuf);
     glDeleteBuffers(1, &texcoordBuf);
     glDeleteBuffers(1, &indexBuf);
 
-    _vao = vao;
     _elementsCount = static_cast<GLsizei> (indices->size());
 }
 
