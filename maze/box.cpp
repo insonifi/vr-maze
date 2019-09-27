@@ -5,10 +5,20 @@
 Box::Box(std::string name, std::vector<QVector3D> box):
     Drawable(name), _box(box)
 {
-    init();
+    initBuffers();
+    Drawable::loadShader(
+                ":vertex-shader.glsl"
+                , ":fragment-shader_dbg.glsl"
+                );
+    Drawable::setMaterial(
+                Material(0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+                         loadTexture(":floor-diff.jpg")
+                         , getGLES() ? 0 : loadTexture(":floor-norm.jpg"), 0, 10.0f
+                         )
+                );
 }
 
-void Box::init()
+void Box::initBuffers()
 {
     QVector3D k = _box.at(0);
     QVector3D l = _box.at(1);
@@ -40,18 +50,19 @@ void Box::init()
         , p4, p8
     };
 
-    GLuint& vao = getVao();
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+    GLuint vao;
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    f->glGenVertexArrays(1, &vao);
+    f->glBindVertexArray(vao);
 
     GLuint vertexBuf;
-    glGenBuffers(1, &vertexBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuf);
-    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr (vertices.size() * sizeof(QVector3D)), vertices.data(), GL_STATIC_DRAW);
+    f->glGenBuffers(1, &vertexBuf);
+    f->glBindBuffer(GL_ARRAY_BUFFER, vertexBuf);
+    f->glBufferData(GL_ARRAY_BUFFER, GLsizeiptr (vertices.size() * sizeof(QVector3D)), vertices.data(), GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
+    f->glEnableVertexAttribArray(0);
+    f->glVertexAttribPointer(
         0,// attribute position in buffer
         3,// size (number of items per vertex)
         GL_FLOAT,// data type
@@ -60,19 +71,23 @@ void Box::init()
         nullptr// array buffer offset
     );
 
-    glBindVertexArray(0);
-    glDeleteBuffers(1, &vertexBuf);
+    f->glBindVertexArray(0);
+    f->glDeleteBuffers(1, &vertexBuf);
 
     _vertexCount = vertices.size();
+    setVao(vao);
 }
 
 void Box::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
 {
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
     QMatrix4x4 modelViewMatrix = vMatrix * getModelMatrix();
     QOpenGLShaderProgram& prg = getShader();
+
+    f->glUseProgram(prg.programId());
     prg.setUniformValue("model_view_matrix", modelViewMatrix);
     prg.setUniformValue("projection_model_view_matrix", pMatrix * modelViewMatrix);
     prg.setUniformValue("normal_matrix", modelViewMatrix.normalMatrix());
-    glBindVertexArray(getVao());
-    glDrawArrays(GL_LINES, 0, _vertexCount);
+    f->glBindVertexArray(getVao());
+    f->glDrawArrays(GL_LINES, 0, _vertexCount);
 }

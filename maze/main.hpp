@@ -30,6 +30,7 @@
 class QImage;
 
 #include <qvr/app.hpp>
+#include <box.h>
 #include <drawable.h>
 #include <maze.h>
 

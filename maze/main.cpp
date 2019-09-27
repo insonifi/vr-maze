@@ -21,6 +21,8 @@
  * SOFTWARE.
  */
 
+#define MAZE 1
+
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QImage>
@@ -78,22 +80,43 @@ unsigned int Main::setupVao(int vertexCount,
 {
     GLuint vao;
     GLuint positionBuf, normalBuf, texcoordBuf, indexBuf;
+    std::vector<QVector3D> v, n;
+    std::vector<QVector2D> t;
+
+    for (int i = 0; i < vertexCount; i++)
+    {
+        v.push_back(QVector3D(
+                        positions[i * 3 + 0]
+                        , positions[i * 3 + 1]
+                        , positions[i * 3 + 2]
+                    ));
+        n.push_back(QVector3D(
+                        normals[i * 3 + 0]
+                        , normals[i * 3 + 1]
+                        , normals[i * 3 + 2]
+                    ));
+        t.push_back(QVector2D(
+                        texcoords[i * 2 + 0]
+                        , texcoords[i * 2 + 1]
+                    ));
+    }
+
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glGenBuffers(1, &positionBuf);
     glBindBuffer(GL_ARRAY_BUFFER, positionBuf);
-    glBufferData(GL_ARRAY_BUFFER, vertexCount * 3 * sizeof(float), positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, v.size() * sizeof(QVector3D), v.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
     glGenBuffers(1, &normalBuf);
     glBindBuffer(GL_ARRAY_BUFFER, normalBuf);
-    glBufferData(GL_ARRAY_BUFFER, vertexCount * 3 * sizeof(float), normals, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, n.size() * sizeof(QVector3D), n.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(1);
     glGenBuffers(1, &texcoordBuf);
     glBindBuffer(GL_ARRAY_BUFFER, texcoordBuf);
-    glBufferData(GL_ARRAY_BUFFER, vertexCount * 2 * sizeof(float), texcoords, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, t.size() * sizeof (QVector2D), t.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(2);
     glGenBuffers(1, &indexBuf);
@@ -178,7 +201,7 @@ static QString readFile(const char* fileName)
     return in.readAll();
 }
 
-#if(0)
+#if(!MAZE)
 bool Main::initProcess(QVRProcess* /* p */)
 {
     /* Initialize per-process OpenGL resources and state here */
@@ -368,7 +391,7 @@ void Main::render(QVRWindow* /* w */,
 }
 #endif
 
-#if(1)
+#if(MAZE)
 bool Main::initProcess(QVRProcess* /* p */)
 {
     // Qt-based OpenGL function pointers
@@ -401,6 +424,7 @@ bool Main::initProcess(QVRProcess* /* p */)
      }
 
     _root = std::make_shared<Maze>(16, 16);
+    // _root = std::make_shared<Box>("box", std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)}));
 
    return true;
 }

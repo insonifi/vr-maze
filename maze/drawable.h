@@ -18,12 +18,13 @@ public:
     void render(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);
     void addChild(std::shared_ptr<Drawable> child);
     void setMaterial(const Material material);
-    void initBuffers(  std::vector<QVector3D> *vertices
+    virtual void initBuffers(  std::vector<QVector3D> *vertices
                      , std::vector<QVector3D> *normals
                      , std::vector<QVector2D> *texcoords
                      , std::vector<unsigned short> *indices);
     QOpenGLShaderProgram& getShader();
-    GLuint& getVao();
+    GLuint getVao();
+    void setVao(GLuint vao);
     QMatrix4x4& getModelMatrix();
     void loadShader(const char* vertShaderPath, const char* fragShaderPath);
     unsigned int loadTexture(const QString& filename);

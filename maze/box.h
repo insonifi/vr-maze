@@ -25,7 +25,7 @@ public:
     virtual void glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix) override;
 
 private:
-    virtual void init();
+    virtual void initBuffers();
     std::vector<QVector3D> _box;
     GLsizei _vertexCount;
 };

@@ -6,10 +6,10 @@ Maze::Maze(unsigned short width, unsigned short height) :
     initMaze();
     Drawable::loadShader(
                 ":vertex-shader.glsl"
-                , ":fragment-shader_dbg.glsl"
+                , ":fragment-shader.glsl"
                 );
     Drawable::setMaterial(
-                Material(0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+                Material(0.5f, 0.5f, 0.5f, 1.0f, 0.2f, 0.1f,
                          loadTexture(":floor-diff.jpg")
                          , getGLES() ? 0 : loadTexture(":floor-norm.jpg"), 0, 10.0f
                          )

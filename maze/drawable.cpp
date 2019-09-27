@@ -2,7 +2,6 @@
 
 Drawable::Drawable(std::string name): _name(name)
 {
-    initializeOpenGLFunctions();
 }
 
 void Drawable::update(QMatrix4x4 modelMatrix, float elapsedMilli)
@@ -23,35 +22,24 @@ void Drawable::render(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
 
 void Drawable::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
 {
-    glUseProgram(_prg.programId());
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-    // Material
-    const Material m = _material;
-    _prg.setUniformValue("material_color", m.r, m.g, m.b);
-    _prg.setUniformValue("material_kd", m.kd);
-    _prg.setUniformValue("material_ks", m.ks);
-    _prg.setUniformValue("material_shininess", m.shininess);
-    _prg.setUniformValue("material_has_diff_tex", m.diffTex == 0 ? 0 : 1);
-    _prg.setUniformValue("material_diff_tex", 0);
-    _prg.setUniformValue("material_has_norm_tex", m.normTex == 0 ? 0 : 1);
-    _prg.setUniformValue("material_norm_tex", 1);
-    _prg.setUniformValue("material_has_spec_tex", m.specTex == 0 ? 0 : 1);
-    _prg.setUniformValue("material_spec_tex", 2);
-    _prg.setUniformValue("material_tex_coord_factor", m.texCoordFactor);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m.diffTex);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, m.normTex);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, m.specTex);
+    f->glUseProgram(_prg.programId());
+
+    f->glActiveTexture(GL_TEXTURE0);
+    f->glBindTexture(GL_TEXTURE_2D, _material.diffTex);
+    f->glActiveTexture(GL_TEXTURE1);
+    f->glBindTexture(GL_TEXTURE_2D, _material.normTex);
+    f->glActiveTexture(GL_TEXTURE2);
+    f->glBindTexture(GL_TEXTURE_2D, _material.specTex);
 
     // Projection
     QMatrix4x4 modelViewMatrix = vMatrix * _modelMatrix;
     _prg.setUniformValue("model_view_matrix", modelViewMatrix);
     _prg.setUniformValue("projection_model_view_matrix", pMatrix * modelViewMatrix);
     _prg.setUniformValue("normal_matrix", modelViewMatrix.normalMatrix());
-    glBindVertexArray(_vao);
-    glDrawElements(GL_TRIANGLES, _elementsCount, GL_UNSIGNED_SHORT, nullptr);
+    f->glBindVertexArray(_vao);
+    f->glDrawElements(GL_TRIANGLES, _elementsCount, GL_UNSIGNED_SHORT, nullptr);
 }
 
 void Drawable::initBuffers(std::vector<QVector3D> *vertices
@@ -59,39 +47,41 @@ void Drawable::initBuffers(std::vector<QVector3D> *vertices
                            , std::vector<QVector2D> *texcoords
                            , std::vector<unsigned short> *indices)
 {
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+
     GLuint positionBuf, normalBuf, texcoordBuf, indexBuf;
 
-    glGenVertexArrays(1, &_vao);
-    glBindVertexArray(_vao);
+    f->glGenVertexArrays(1, &_vao);
+    f->glBindVertexArray(_vao);
 
-    glGenBuffers(1, &positionBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, positionBuf);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (vertices->size() * sizeof (QVector3D)), vertices->data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(0);
+    f->glGenBuffers(1, &positionBuf);
+    f->glBindBuffer(GL_ARRAY_BUFFER, positionBuf);
+    f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (vertices->size() * sizeof (QVector3D)), vertices->data(), GL_STATIC_DRAW);
+    f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    f->glEnableVertexAttribArray(0);
 
-    glGenBuffers(1, &normalBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, normalBuf);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (normals->size() * sizeof (QVector3D)), normals->data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(1);
+     f->glGenBuffers(1, &normalBuf);
+     f->glBindBuffer(GL_ARRAY_BUFFER, normalBuf);
+     f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (normals->size() * sizeof (QVector3D)), normals->data(), GL_STATIC_DRAW);
+     f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+     f->glEnableVertexAttribArray(1);
 
-    glGenBuffers(1, &texcoordBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, texcoordBuf);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (texcoords->size() * sizeof (QVector2D)), texcoords->data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(2);
+     f->glGenBuffers(1, &texcoordBuf);
+     f->glBindBuffer(GL_ARRAY_BUFFER, texcoordBuf);
+     f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr> (texcoords->size() * sizeof (QVector2D)), texcoords->data(), GL_STATIC_DRAW);
+     f->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+     f->glEnableVertexAttribArray(2);
 
-    glGenBuffers(1, &indexBuf);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuf);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr> (indices->size() * sizeof(unsigned short)), indices->data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    f->glGenBuffers(1, &indexBuf);
+    f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuf);
+    f->glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr> (indices->size() * sizeof(unsigned short)), indices->data(), GL_STATIC_DRAW);
 
-    glDeleteBuffers(1, &positionBuf);
-    glDeleteBuffers(1, &normalBuf);
-    glDeleteBuffers(1, &texcoordBuf);
-    glDeleteBuffers(1, &indexBuf);
+    f->glBindVertexArray(0);
+
+    f->glDeleteBuffers(1, &positionBuf);
+    f->glDeleteBuffers(1, &normalBuf);
+    f->glDeleteBuffers(1, &texcoordBuf);
+    f->glDeleteBuffers(1, &indexBuf);
 
     _elementsCount = static_cast<GLsizei> (indices->size());
 }
@@ -114,25 +104,45 @@ unsigned int Drawable::loadTexture(const QString& filename)
 
 unsigned int Drawable::loadTexture(const QImage& img)
 {
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+
     unsigned int tex;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+    f->glGenTextures(1, &tex);
+    f->glBindTexture(GL_TEXTURE_2D, tex);
+    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
             img.width(), img.height(), 0,
             GL_RGBA, GL_UNSIGNED_BYTE, img.constBits());
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    f->glGenerateMipmap(GL_TEXTURE_2D);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
     if (!getGLES())
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
+        f->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
+
     return tex;
 }
 
-void Drawable::setMaterial(const Material material)
+void Drawable::setMaterial(const Material m)
 {
-    _material = material;
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+    _material = m;
+
+    f->glUseProgram(_prg.programId());
+
+    // Material
+    _prg.setUniformValue("material_color", m.r, m.g, m.b);
+    _prg.setUniformValue("material_kd", m.kd);
+    _prg.setUniformValue("material_ks", m.ks);
+    _prg.setUniformValue("material_shininess", m.shininess);
+    _prg.setUniformValue("material_has_diff_tex", m.diffTex == 0 ? 0 : 1);
+    _prg.setUniformValue("material_diff_tex", 0);
+    _prg.setUniformValue("material_has_norm_tex", m.normTex == 0 ? 0 : 1);
+    _prg.setUniformValue("material_norm_tex", 1);
+    _prg.setUniformValue("material_has_spec_tex", m.specTex == 0 ? 0 : 1);
+    _prg.setUniformValue("material_spec_tex", 2);
+    _prg.setUniformValue("material_tex_coord_factor", m.texCoordFactor);
 }
 
 QString Drawable::readFile(const char* fileName)
@@ -169,9 +179,14 @@ QOpenGLShaderProgram& Drawable::getShader()
     return _prg;
 }
 
-GLuint& Drawable::getVao()
+GLuint Drawable::getVao()
 {
     return _vao;
+}
+
+void Drawable::setVao(GLuint vao)
+{
+    _vao = vao;
 }
 
 QMatrix4x4& Drawable::getModelMatrix()
