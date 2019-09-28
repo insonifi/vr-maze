@@ -22,11 +22,11 @@ void Maze::initMaze()
               << _width << "×" << _height
               << std::endl;
 
-    _maze.assign(static_cast<unsigned short> (_width * _height), false);
+    _maze.assign(static_cast<unsigned short> (_width * _height + 1), false);
     generate();
     generateGeometry();
     printMaze();
-    // generateAabb();
+    generateAabb();
 }
 
 void Maze::addRandomLoop()
@@ -158,8 +158,8 @@ void Maze::generateAabb()
     //             Aabb(QVector3D(0 - 0.5f, 0.5f, 0 - 0.5f), QVector3D(_width + 0.5f, 2.0f, _height + 0.5f))
     //             );
 
-    // for (Aabb aabb : _aabb_list)
-    //     addChild(std::make_shared<Box>("box", aabb.getAB()));
+    for (Aabb aabb : _aabb_list)
+        addChild(std::make_shared<Box>("box", aabb.getAB()));
 }
 
 void Maze::genFace(
@@ -272,7 +272,12 @@ void Maze::generateGeometry() {
 
 std::vector<bool>::reference Maze::mazeBlockAt(unsigned short x, unsigned short y)
 {
-    return _maze.at(y * _width + x);
+    unsigned short idx = y * _width + x;
+
+    if (idx < 0 || idx >= _maze.size())
+        return _maze.at(_maze.size() - 1);
+
+    return _maze.at(idx);
 }
 
 QVector3D Maze::getRandomPos() const
@@ -292,4 +297,51 @@ QVector3D Maze::getRandomPos() const
 
 
    return position;
+}
+
+QVector3D Maze::collision(QVector3D position, QVector3D _movement, float _size)
+{
+    QVector3D shift = QVector3D(_movement.x(), _movement.y(), _movement.z());
+    //glm::vec3 shift = movement;
+    QVector3D size = QVector3D(_size, _size, _size);
+    QVector3D position_f = position + shift;
+    Aabb pos0_aabb = Aabb(position - size, position + size);
+    Aabb pos1_aabb = Aabb(position_f - size, position_f + size);
+
+    bool collides = false;
+    std::vector<Aabb> aabb_collided;
+
+    for (Aabb box : _aabb_list)
+    {
+        std::vector<bool> current = box.getOverlap(pos1_aabb);//TODO: apply _modelMatrix
+        bool overlaps = current.at(0) && current.at(1) && current.at(2);
+
+        collides |= overlaps;
+
+        if (overlaps)
+            aabb_collided.push_back(box);
+    }
+
+    if (!collides)
+        return position + shift;
+
+    std::cout << "collision" << std::endl;
+    std::vector<bool> overlap = {true, true, true};
+
+    for (Aabb box : aabb_collided)
+    {
+        std::vector<bool> overlapC = box.getOverlap(pos0_aabb);
+        overlap.at(0) = overlap.at(0) & overlapC.at(0);
+        overlap.at(1) = overlap.at(1) & overlapC.at(1);
+        overlap.at(2) = overlap.at(2) & overlapC.at(2);
+    }
+
+    shift = QVector3D(
+                  (overlap.at(0) ? shift.x() : 0)
+                , (overlap.at(1) ? shift.y() : 0)
+                , (overlap.at(2) ? shift.z() : 0)
+                );
+
+
+    return position + shift;
 }

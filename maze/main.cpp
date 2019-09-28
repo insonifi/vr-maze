@@ -22,6 +22,8 @@
  */
 
 #define MAZE 1
+#define CUSTOM_NAV true
+#define WALK_SPEED 0.007f
 
 #include <QGuiApplication>
 #include <QKeyEvent>
@@ -186,10 +188,11 @@ void Main::update(const QList<QVRObserver*>& observerList)
         }
     }
 
+    QVRObserver* observer = observerList.first();
+
     /** Initial observer placement and maze position adjustment */
     if (!_mazeInited)
     {
-        QVRObserver* observer = observerList.first();
         QVector3D positionCurrent = observer->trackingPosition();
         QMatrix4x4 initMazeTransform = QMatrix4x4();
 
@@ -198,6 +201,15 @@ void Main::update(const QList<QVRObserver*>& observerList)
         _root->update(initMazeTransform, 0);
         _mazeInited = true;
     }
+
+    QVector3D position = observer->navigationPosition();
+
+    if (_move)
+    {
+        position = _root->collision(position, _orientation.rotatedVector(QVector3D(0, 0, -WALK_SPEED * seconds)));
+    }
+
+    observer->setNavigation(position , _orientation);
 }
 
 bool Main::wantExit()
@@ -510,6 +522,25 @@ void Main::keyPressEvent(const QVRRenderContext& /* context */, QKeyEvent* event
     }
 }
 
+void Main::mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event)
+{
+    QPointF current = event->pos();
+    float yaw = -current.x() / context.windowGeometry().width();
+    float pitch = -current.y() / context.windowGeometry().height();
+
+    _orientation = QQuaternion::fromEulerAngles(pitch * 90 + 45, yaw * 360, 0.f);
+}
+
+void Main::mousePressEvent(const QVRRenderContext &context, QMouseEvent *event)
+{
+    _move = true;
+}
+
+void Main::mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event)
+{
+    _move = false;
+}
+
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
@@ -531,7 +562,7 @@ int main(int argc, char* argv[])
 
     /* Then start QVR with your app */
     Main qvrapp;
-    if (!manager.init(&qvrapp)) {
+    if (!manager.init(&qvrapp, CUSTOM_NAV)) {
         qCritical("Cannot initialize QVR manager");
         return 1;
     }

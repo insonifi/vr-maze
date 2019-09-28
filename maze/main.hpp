@@ -66,6 +66,9 @@ private:
     QVector<unsigned int> _devModelVaoIndices;
     QVector<unsigned int> _devModelTextures;
     bool _mazeInited = false;         // Flag indicated whether we have already adjusted the maze position
+    QPointF _mousePos = QPointF(0, 0);
+    QQuaternion _orientation;
+    bool _move = false;               // Move forward
 
     /* Dynamic data for rendering. This needs to be serialized for multi-process
      * rendering) */
@@ -85,6 +88,8 @@ private:
             const QMatrix4x4& viewMatrix, const QMatrix4x4& modelMatrix,
             unsigned int vao, unsigned int indices);
 
+    QVector3D collisionAdjust(QVector3D position, QVector3D movement, float size = 0.5f);
+
 public:
     void serializeDynamicData(QDataStream& ds) const override;
     void deserializeDynamicData(QDataStream& ds) override;
@@ -98,6 +103,10 @@ public:
     void render(QVRWindow* w, const QVRRenderContext& c, const unsigned int* textures) override;
 
     void keyPressEvent(const QVRRenderContext& context, QKeyEvent* event) override;
+
+    void mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event) override;
+    void mousePressEvent(const QVRRenderContext &context, QMouseEvent *event) override;
+    void mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event) override;
 };
 
 #endif
