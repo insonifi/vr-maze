@@ -187,24 +187,17 @@ void Main::update(const QList<QVRObserver*>& observerList)
     }
 
     /** Initial observer placement and maze position adjustment */
-    QVRObserver* observer = observerList.first();
-    QVector3D positionCurrent = observer->trackingPosition();
-
-    if (positionCurrent.x() == 0.f && positionCurrent.z() == 0.f)
+    if (!_mazeInited)
     {
+        QVRObserver* observer = observerList.first();
+        QVector3D positionCurrent = observer->trackingPosition();
         QMatrix4x4 initMazeTransform = QMatrix4x4();
 
         initMazeTransform.translate(positionCurrent);
+        initMazeTransform.translate(-_root->getRandomPos());
         _root->update(initMazeTransform, 0);
-
-        QVector3D positionNew = _root->getRandomPos();
-        observer->setTracking(
-                    QVector3D(positionNew.x(), positionCurrent.y(), positionNew.z())
-                    , observer->trackingOrientation()
-                    );
+        _mazeInited = true;
     }
-
-
 }
 
 bool Main::wantExit()
