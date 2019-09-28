@@ -226,7 +226,7 @@ void Maze::generateGeometry() {
             {
                 /** Floor  **/
                 QMatrix4x4 t0 = QMatrix4x4();
-                t0.translate(QVector3D(x, 0.f, y));
+                t0.translate(QVector3D(x, 0, y));
 
                 genFace(&vertices, &normals, &texcoords, &indices, t0);
 
@@ -273,4 +273,23 @@ void Maze::generateGeometry() {
 std::vector<bool>::reference Maze::mazeBlockAt(unsigned short x, unsigned short y)
 {
     return _maze.at(y * _width + x);
+}
+
+QVector3D Maze::getRandomPos() const
+{
+   unsigned int idx = 0;
+
+   for (;_maze.at(idx) != true; idx = static_cast<unsigned int>(rand()) % _maze.size())
+   {
+   }
+
+   QVector3D position = QVector3D(idx % _width, 0, idx / _width);
+
+   std::cout << "Random position: "
+             << position.x() << ", "
+             << position.y() << ", "
+             << position.x() << std::endl;
+
+
+   return position;
 }

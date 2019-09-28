@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 #include <QImage>
 
+#include <qvr/observer.hpp>
 #include <qvr/manager.hpp>
 #include <qvr/window.hpp>
 #include <qvr/device.hpp>
@@ -168,16 +169,15 @@ void Main::deserializeDynamicData(QDataStream& ds)
     ds >> _objectRotationAngle;
 }
 
-void Main::update(const QList<QVRObserver*>&)
+void Main::update(const QList<QVRObserver*>& observerList)
 {
     float seconds = _timer.elapsed() / 1000.0f;
     _objectRotationAngle = seconds * 20.0f;
 
-
-
     // Trigger a haptic pulse on devices that support it
     for (int i = 0; i < QVRManager::deviceCount(); i++) {
         const QVRDevice& device = QVRManager::device(i);
+
         if (device.supportsHapticPulse()
                 && device.hasAnalog(QVR_Analog_Trigger)
                 && device.analogValue(QVR_Analog_Trigger) > 0.0f) {
@@ -185,6 +185,26 @@ void Main::update(const QList<QVRObserver*>&)
             device.triggerHapticPulse(microseconds);
         }
     }
+
+    /** Initial observer placement and maze position adjustment */
+    QVRObserver* observer = observerList.first();
+    QVector3D positionCurrent = observer->trackingPosition();
+
+    if (positionCurrent.x() == 0.f && positionCurrent.z() == 0.f)
+    {
+        QMatrix4x4 initMazeTransform = QMatrix4x4();
+
+        initMazeTransform.translate(positionCurrent);
+        _root->update(initMazeTransform, 0);
+
+        QVector3D positionNew = _root->getRandomPos();
+        observer->setTracking(
+                    QVector3D(positionNew.x(), positionCurrent.y(), positionNew.z())
+                    , observer->trackingOrientation()
+                    );
+    }
+
+
 }
 
 bool Main::wantExit()
@@ -423,8 +443,16 @@ bool Main::initProcess(QVRProcess* /* p */)
          _devModelTextures.append(setupTex(QVRManager::deviceModelTexture(i)));
      }
 
-    _root = std::make_shared<Maze>(16, 16);
-    // _root = std::make_shared<Box>("box", std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)}));
+     std::shared_ptr<Maze> maze = std::make_shared<Maze>(16, 16);
+
+     maze->addChild(
+                std::make_shared<Box>(
+                    "box"
+                    , std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)})
+                    )
+                );
+
+    _root = maze;
 
    return true;
 }

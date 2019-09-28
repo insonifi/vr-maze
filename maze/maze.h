@@ -16,6 +16,7 @@ class Maze : public Drawable
 {
 public:
     Maze(unsigned short x = 16, unsigned short = 16);
+    QVector3D getRandomPos() const;
 
 private:
     std::vector<bool> _maze;

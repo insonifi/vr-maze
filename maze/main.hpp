@@ -60,7 +60,7 @@ private:
     Material     _objectMaterials[5]; // Materials of the objects
     QMatrix4x4   _objectMatrices[5];  // Base transformation matrices of the objs
     QOpenGLShaderProgram _prg;        // GLSL program for rendering
-    std::shared_ptr<Drawable> _root;  // Scene root
+    std::shared_ptr<Maze> _root;  // Scene root
     // Data to render device models
     QVector<unsigned int> _devModelVaos;
     QVector<unsigned int> _devModelVaoIndices;
