@@ -450,12 +450,12 @@ bool Main::initProcess(QVRProcess* /* p */)
 
      std::shared_ptr<Maze> maze = std::make_shared<Maze>(16, 16);
 
-     maze->addChild(
-                std::make_shared<Box>(
-                    "box"
-                    , std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)})
-                    )
-                );
+     // maze->addChild(
+     //            std::make_shared<Box>(
+     //                "box"
+     //                , std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)})
+     //                )
+     //            );
 
     _root = maze;
 

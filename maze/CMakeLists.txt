@@ -22,6 +22,7 @@ qt5_add_resources(RESOURCES resources.qrc)
 add_executable(maze
     aabb.cpp
     box.cpp
+    bvec.hpp
     geometries.cpp geometries.hpp
     main.cpp main.hpp
     drawable.cpp

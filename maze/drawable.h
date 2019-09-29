@@ -33,6 +33,7 @@ public:
     static void setGLES(bool isGLES);
     static bool getGLES();
     static bool isGLES;
+    QMatrix4x4 getModelMatrix() const;
 
 private:
     virtual void glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);

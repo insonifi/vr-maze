@@ -23,7 +23,7 @@ private:
     std::vector<bool> _maze;
     unsigned short _width;
     unsigned short _height;
-    std::vector<Aabb> _aabb_list;
+    std::vector<std::shared_ptr<Aabb>> _aabb_list;
     void initMaze();
     std::vector<bool>::reference mazeBlockAt(unsigned short x, unsigned short y);
     void addRandomLoop();

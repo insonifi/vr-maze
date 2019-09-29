@@ -1,4 +1,5 @@
-#include "maze.h"
+#include <bvec.hpp>
+#include <maze.h>
 
 Maze::Maze(unsigned short width, unsigned short height) :
     Drawable("Maze"), _width(width), _height(height)
@@ -87,9 +88,11 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !fw)) && front.size() > 0)
             {
-                _aabb_list.push_back(
-                            Aabb(QVector3D(front.at(0) - 0.5f, -0.5f, front.at(1) - 0.5f), QVector3D((x - 1) + 0.5f, 0.5f, y + 0.5f))
-                            );
+                _aabb_list.push_back(std::make_shared<Aabb>(
+                                         QVector3D(front.at(0) - 0.5f, -0.5f, front.at(1) - 0.5f)
+                                         , QVector3D((x - 1) + 0.5f, 0.5f, y + 0.5f)
+                                         , true
+                                         ));
                 front.clear();
             }
             if (!block && bk && back.size() == 0)
@@ -98,9 +101,11 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !bk)) && back.size() > 0)
             {
-                _aabb_list.push_back(
-                            Aabb(QVector3D(back.at(0) - 0.5f, -0.5f, back.at(1) - 0.5f), QVector3D((x - 1) + 0.5f, 0.5f, y + 0.5f))
-                            );
+                _aabb_list.push_back(std::make_shared<Aabb>(
+                                         QVector3D(back.at(0) - 0.5f, -0.5f, back.at(1) - 0.5f)
+                                         , QVector3D((x - 1) + 0.5f, 0.5f, y + 0.5f)
+                                         , true
+                                         ));
                 back.clear();
             }
         }
@@ -124,9 +129,10 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !fw)) && front.size() > 0)
             {
-                _aabb_list.push_back(
-                            Aabb(QVector3D(front.at(0) - 0.5f, -0.5f, front.at(1) - 0.5f), QVector3D(x + 0.5f, 0.5f, (y - 1) + 0.5f))
-                            );
+                _aabb_list.push_back(std::make_shared<Aabb>(
+                                         QVector3D(front.at(0) - 0.5f, -0.5f, front.at(1) - 0.5f)
+                                         , QVector3D(x + 0.5f, 0.5f, (y - 1) + 0.5f)
+                                         , true));
                 front.clear();
             }
             if (!block && bk && back.size() == 0)
@@ -135,31 +141,29 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !bk)) && back.size() > 0)
             {
-                _aabb_list.push_back(
-                            Aabb(QVector3D(back.at(0) - 0.5f, -0.5f, back.at(1) - 0.5f), QVector3D(x + 0.5f, 0.5f, (y - 1) + 0.5f))
-                            );
+                _aabb_list.push_back(std::make_shared<Aabb>(
+                                         QVector3D(back.at(0) - 0.5f, -0.5f, back.at(1) - 0.5f)
+                                         , QVector3D(x + 0.5f, 0.5f, (y - 1) + 0.5f)
+                                         , true));
                 back.clear();
             }
         }
     }
 
     /** Outer Wall */// TODO: other sides
-    _aabb_list.push_back(
-                Aabb(QVector3D(-1 - 0.5f, -0.5f, 0 - 0.5f), QVector3D(- 0.5f, 0.5f, _height + 0.5f))
-                );
+    _aabb_list.push_back(std::make_shared<Aabb>(
+                             QVector3D(-1 - 0.5f, -0.5f, 0 - 0.5f)
+                             , QVector3D(- 0.5f, 0.5f, _height + 0.5f)
+                             , true));
 
     /** Floor */
-    _aabb_list.push_back(
-                Aabb(QVector3D(0 - 0.5f, -2.f, 0 - 0.5f), QVector3D(_width + 0.5f, -0.5f, _height + 0.5f))
-                );
+    _aabb_list.push_back(std::make_shared<Aabb>(
+                             QVector3D(0 - 0.5f, -2.f, 0 - 0.5f)
+                             , QVector3D(_width + 0.5f, -0.5f, _height + 0.5f)
+                             , true));
 
-    /** Ceiling */
-    // _aabb_list.push_back(
-    //             Aabb(QVector3D(0 - 0.5f, 0.5f, 0 - 0.5f), QVector3D(_width + 0.5f, 2.0f, _height + 0.5f))
-    //             );
-
-    for (Aabb aabb : _aabb_list)
-        addChild(std::make_shared<Box>("box", aabb.getAB()));
+    for (std::shared_ptr<Aabb> aabb : _aabb_list)
+        addChild(aabb);
 }
 
 void Maze::genFace(
@@ -305,16 +309,17 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, float _size)
     //glm::vec3 shift = movement;
     QVector3D size = QVector3D(_size, _size, _size);
     QVector3D position_f = position + shift;
-    Aabb pos0_aabb = Aabb(position - size, position + size);
-    Aabb pos1_aabb = Aabb(position_f - size, position_f + size);
+    std::shared_ptr<Aabb> pos0_aabb =
+            std::make_shared<Aabb>(position - size, position + size);
+    std::shared_ptr<Aabb> pos1_aabb =
+            std::make_shared<Aabb>(position_f - size, position_f + size);
 
     bool collides = false;
-    std::vector<Aabb> aabb_collided;
+    std::vector<std::shared_ptr<Aabb>> aabb_collided;
 
-    for (Aabb box : _aabb_list)
+    for (std::shared_ptr<Aabb> box : _aabb_list)
     {
-        std::vector<bool> current = box.getOverlap(pos1_aabb);//TODO: apply _modelMatrix
-        bool overlaps = current.at(0) && current.at(1) && current.at(2);
+        bool overlaps = box->hasOverlap(*pos1_aabb);
 
         collides |= overlaps;
 
@@ -326,20 +331,18 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, float _size)
         return position + shift;
 
     std::cout << "collision" << std::endl;
-    std::vector<bool> overlap = {true, true, true};
+    BVec overlap = BVec(true);
 
-    for (Aabb box : aabb_collided)
+    for (std::shared_ptr<Aabb> box : aabb_collided)
     {
-        std::vector<bool> overlapC = box.getOverlap(pos0_aabb);
-        overlap.at(0) = overlap.at(0) & overlapC.at(0);
-        overlap.at(1) = overlap.at(1) & overlapC.at(1);
-        overlap.at(2) = overlap.at(2) & overlapC.at(2);
+        BVec b = box->getOverlap(*pos0_aabb);
+        overlap &= b;
     }
 
     shift = QVector3D(
-                  (overlap.at(0) ? shift.x() : 0)
-                , (overlap.at(1) ? shift.y() : 0)
-                , (overlap.at(2) ? shift.z() : 0)
+                  (overlap.x ? shift.x() : 0)
+                , (overlap.y ? shift.y() : 0)
+                , (overlap.z ? shift.z() : 0)
                 );
 
 

@@ -205,3 +205,8 @@ bool Drawable::getGLES()
 }
 
 bool Drawable::isGLES = false;
+
+QMatrix4x4 Drawable::getModelMatrix() const
+{
+    return _modelMatrix;
+}

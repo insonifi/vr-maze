@@ -11,8 +11,8 @@ Box::Box(std::string name, std::vector<QVector3D> box):
                 , ":fragment-shader_dbg.glsl"
                 );
     Drawable::setMaterial(
-                Material(0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
-                         loadTexture(":floor-diff.jpg")
+                Material(0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f
+                         ,0
                          , getGLES() ? 0 : loadTexture(":floor-norm.jpg"), 0, 10.0f
                          )
                 );

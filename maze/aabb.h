@@ -4,6 +4,9 @@
 #include <vector>
 #include <QOpenGLExtraFunctions>
 #include <QVector3D>
+#include <QMatrix4x4>
+#include <box.h>
+#include <bvec.hpp>
 
 struct BoundingBox {
     QVector3D a;
@@ -28,21 +31,27 @@ struct Bound {
     Bound(BoundAxis x, BoundAxis y, BoundAxis z):
         x(x), y(y), z(z)
     {}
+
 };
 
-class Aabb
+class Aabb : public Drawable
 {
 public:
     Aabb(QVector3D a = QVector3D(0.f, 0.f, 0.f)
             , QVector3D b = QVector3D(0.f, 0.f, 0.f)
+            , bool renderable = false
             );
 
-    std::vector<bool> virtual getOverlap(Aabb aabb) const;
-    std::vector<bool> virtual getContain(Aabb aabb) const;
+    BVec virtual getOverlap(Aabb &aabb) const;
+    bool virtual hasOverlap(Aabb &aabb) const;
+    BVec virtual getContain(Aabb &aabb) const;
     Bound virtual boundsPoint(QVector3D point) const;
     BoundingBox getBox() const;
     std::vector<QVector3D> getAB() const;
+
 private:
+    virtual void glRender(QMatrix4x4 &vMarix, QMatrix4x4 &pMatrix);
+
     BoundingBox _ab;
 };
 
