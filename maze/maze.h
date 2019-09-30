@@ -17,7 +17,7 @@ class Maze : public Drawable
 public:
     Maze(unsigned short x = 16, unsigned short = 16);
     QVector3D getRandomPos() const;
-    QVector3D collision(QVector3D position, QVector3D movement, float size = 0.2);
+    QVector3D collision(QVector3D position, QVector3D movement);
 
 private:
     std::vector<bool> _maze;

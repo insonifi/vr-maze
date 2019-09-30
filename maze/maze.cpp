@@ -303,11 +303,11 @@ QVector3D Maze::getRandomPos() const
    return position;
 }
 
-QVector3D Maze::collision(QVector3D position, QVector3D _movement, float _size)
+QVector3D Maze::collision(QVector3D position, QVector3D _movement)
 {
     QVector3D shift = QVector3D(_movement.x(), _movement.y(), _movement.z());
     //glm::vec3 shift = movement;
-    QVector3D size = QVector3D(_size, _size, _size);
+    QVector3D size = QVector3D(0, 0, 0);
     QVector3D position_f = position + shift;
     std::shared_ptr<Aabb> pos0_aabb =
             std::make_shared<Aabb>(position - size, position + size);

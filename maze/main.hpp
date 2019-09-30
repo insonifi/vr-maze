@@ -69,6 +69,7 @@ private:
     QPointF _mousePos = QPointF(0, 0);
     QQuaternion _orientation;
     bool _move = false;               // Move forward
+    std::shared_ptr<Box> _observerBox;// Box of the observer
 
     /* Dynamic data for rendering. This needs to be serialized for multi-process
      * rendering) */

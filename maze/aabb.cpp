@@ -3,8 +3,8 @@
 Aabb::Aabb(QVector3D a, QVector3D b, bool renderable):
     Drawable("AABB"),
     _ab(BoundingBox(
-            b.length() > a.length() ? a : b
-          , b.length() > a.length() ? b : a
+            b.lengthSquared() > a.lengthSquared() ? a : b
+          , b.lengthSquared() > a.lengthSquared() ? b : a
         ))
 {
     if (renderable)

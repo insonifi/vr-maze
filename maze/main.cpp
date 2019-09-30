@@ -24,6 +24,7 @@
 #define MAZE 1
 #define CUSTOM_NAV true
 #define WALK_SPEED 0.007f
+#define SIZE 0.5
 
 #include <QGuiApplication>
 #include <QKeyEvent>
@@ -210,6 +211,10 @@ void Main::update(const QList<QVRObserver*>& observerList)
     }
 
     observer->setNavigation(position , _orientation);
+
+    QMatrix4x4 translation = QMatrix4x4();
+    translation.translate(position);
+    _observerBox->update(translation, seconds);
 }
 
 bool Main::wantExit()
@@ -458,6 +463,10 @@ bool Main::initProcess(QVRProcess* /* p */)
      //            );
 
     _root = maze;
+    _observerBox = std::make_shared<Box> (
+                "Observer"
+                , std::vector<QVector3D> {QVector3D(-SIZE, -SIZE, -SIZE), QVector3D(SIZE, SIZE, SIZE)}
+                );
 
    return true;
 }
@@ -485,6 +494,7 @@ void Main::render(QVRWindow* /* w */,
         // Render scene
 
         _root->render(viewMatrix, projectionMatrix);
+        _observerBox->render(viewMatrix, projectionMatrix);
 
         // Render device models (optional)
         for (int i = 0; i < QVRManager::deviceCount(); i++) {
