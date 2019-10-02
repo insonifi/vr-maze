@@ -30,7 +30,7 @@
 class QImage;
 
 #include <qvr/app.hpp>
-#include <box.h>
+#include <aabb.h>
 #include <drawable.h>
 #include <maze.h>
 
@@ -68,8 +68,8 @@ private:
     bool _mazeInited = false;         // Flag indicated whether we have already adjusted the maze position
     QPointF _mousePos = QPointF(0, 0);
     QQuaternion _orientation;
-    bool _move = false;               // Move forward
-    std::shared_ptr<Box> _observerBox;// Box of the observer
+    float _move = 0;               // Move forward
+    std::shared_ptr<Aabb> _observerBox;// Box of the observer
 
     /* Dynamic data for rendering. This needs to be serialized for multi-process
      * rendering) */

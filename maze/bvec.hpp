@@ -10,11 +10,11 @@ struct BVec {
 
     BVec operator &=(BVec a)
     {
-        return BVec(
-                    x & a.x
-                    , y & a.y
-                    , z & a.z
-                    );
+        this->x &= a.x;
+        this->y &= a.y;
+        this->z &= a.z;
+
+        return *this;
     }
     friend BVec operator & (BVec a, BVec b)
     {

@@ -13,20 +13,26 @@ Aabb::Aabb(QVector3D a, QVector3D b, bool renderable):
 
 BoundingBox Aabb::getBox() const
 {
-   return _ab;
+   return BoundingBox(
+               getModelMatrix() * _ab.a
+               , getModelMatrix() * _ab.b
+               );
 }
 
 std::vector<QVector3D> Aabb::getAB() const
 {
-    return {_ab.a, _ab.b};
+    return {
+         getModelMatrix() * _ab.a
+        , getModelMatrix() * _ab.b
+        };
 }
 
 BVec Aabb::getOverlap(Aabb &aabb) const
 {
     BoundingBox box0 = getBox();
     BoundingBox box1 = aabb.getBox();
-    QVector3D a = box0.a * getModelMatrix();
-    QVector3D b = box0.b * getModelMatrix();
+    QVector3D a = box0.a;
+    QVector3D b = box0.b;
 
 
     bool overlapX = b.x() > box1.a.x()
@@ -53,8 +59,8 @@ BVec Aabb::getContain(Aabb &aabb) const
 {
     BoundingBox box = aabb.getBox();
 
-    Bound a = boundsPoint(box.a * getModelMatrix());
-    Bound b = boundsPoint(box.b * getModelMatrix());
+    Bound a = boundsPoint(box.a);
+    Bound b = boundsPoint(box.b);
 
     return BVec(
                   (a.x.top && a.x.bottom && b.x.top && b.x.bottom)

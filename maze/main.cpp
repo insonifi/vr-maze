@@ -23,8 +23,8 @@
 
 #define MAZE 1
 #define CUSTOM_NAV true
-#define WALK_SPEED 0.007f
-#define SIZE 0.5
+#define WALK_SPEED 1.f
+#define SIZE 0.2f
 
 #include <QGuiApplication>
 #include <QKeyEvent>
@@ -175,7 +175,7 @@ void Main::deserializeDynamicData(QDataStream& ds)
 void Main::update(const QList<QVRObserver*>& observerList)
 {
     float seconds = _timer.elapsed() / 1000.0f;
-    _objectRotationAngle = seconds * 20.0f;
+    _timer.restart();
 
     // Trigger a haptic pulse on devices that support it
     for (int i = 0; i < QVRManager::deviceCount(); i++) {
@@ -190,14 +190,14 @@ void Main::update(const QList<QVRObserver*>& observerList)
     }
 
     QVRObserver* observer = observerList.first();
+    QVector3D positionTracking = observer->trackingPosition();
 
     /** Initial observer placement and maze position adjustment */
     if (!_mazeInited)
     {
-        QVector3D positionCurrent = observer->trackingPosition();
         QMatrix4x4 initMazeTransform = QMatrix4x4();
 
-        initMazeTransform.translate(positionCurrent);
+        initMazeTransform.translate(positionTracking);
         initMazeTransform.translate(-_root->getRandomPos());
         _root->update(initMazeTransform, 0);
         _mazeInited = true;
@@ -205,16 +205,20 @@ void Main::update(const QList<QVRObserver*>& observerList)
 
     QVector3D position = observer->navigationPosition();
 
-    if (_move)
-    {
-        position = _root->collision(position, _orientation.rotatedVector(QVector3D(0, 0, -WALK_SPEED * seconds)));
-    }
-
-    observer->setNavigation(position , _orientation);
-
     QMatrix4x4 translation = QMatrix4x4();
     translation.translate(position);
-    _observerBox->update(translation, seconds);
+    QMatrix4x4 observerTransform = translation;
+
+    observerTransform.translate(positionTracking);
+    _observerBox->update(observerTransform, seconds);
+
+    position = _root->collision(
+                position
+                , _orientation.rotatedVector(QVector3D(0, 0, WALK_SPEED * _move * seconds))
+                , _observerBox->getBox()
+                );
+
+    observer->setNavigation(position , _orientation);
 }
 
 bool Main::wantExit()
@@ -229,6 +233,144 @@ static QString readFile(const char* fileName)
     f.open(QIODevice::ReadOnly);
     QTextStream in(&f);
     return in.readAll();
+}
+
+#if(MAZE)
+bool Main::initProcess(QVRProcess* /* p */)
+{
+    // Qt-based OpenGL function pointers
+    initializeOpenGLFunctions();
+
+    // FBO
+    glGenFramebuffers(1, &_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+    glGenTextures(1, &_fboDepthTex);
+    glBindTexture(GL_TEXTURE_2D, _fboDepthTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 1, 1,
+            0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _fboDepthTex, 0);
+
+     // Device model data
+     for (int i = 0; i < QVRManager::deviceModelVertexDataCount(); i++) {
+         _devModelVaos.append(setupVao(
+                     QVRManager::deviceModelVertexCount(i),
+                     QVRManager::deviceModelVertexPositions(i),
+                     QVRManager::deviceModelVertexNormals(i),
+                     QVRManager::deviceModelVertexTexCoords(i),
+                     QVRManager::deviceModelVertexIndexCount(i),
+                     QVRManager::deviceModelVertexIndices(i)));
+         _devModelVaoIndices.append(QVRManager::deviceModelVertexIndexCount(i));
+     }
+     for (int i = 0; i < QVRManager::deviceModelTextureCount(); i++) {
+         _devModelTextures.append(setupTex(QVRManager::deviceModelTexture(i)));
+     }
+
+     std::shared_ptr<Maze> maze = std::make_shared<Maze>(16, 16);
+
+     // maze->addChild(
+     //            std::make_shared<Box>(
+     //                "box"
+     //                , std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)})
+     //                )
+     //            );
+
+    _root = maze;
+    _observerBox = std::make_shared<Aabb> (
+                QVector3D(-SIZE, -SIZE, -SIZE)
+                , QVector3D(SIZE, SIZE, SIZE)
+                , true
+                );
+
+   return true;
+}
+
+void Main::render(QVRWindow* /* w */,
+        const QVRRenderContext& context, const unsigned int* textures)
+{
+    for (int view = 0; view < context.viewCount(); view++) {
+        // Get view dimensions
+        int width = context.textureSize(view).width();
+        int height = context.textureSize(view).height();
+        // Set up framebuffer object to render into
+        glBindTexture(GL_TEXTURE_2D, _fboDepthTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height,
+                0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+        glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[view], 0);
+        // Set up view
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        QMatrix4x4 projectionMatrix = context.frustum(view).toMatrix4x4();
+        QMatrix4x4 viewMatrix = context.viewMatrix(view);
+        // Set up shader program
+        glEnable(GL_DEPTH_TEST);
+        // Render scene
+
+        _observerBox->render(viewMatrix, projectionMatrix);
+        _root->render(viewMatrix, projectionMatrix);
+
+        // Render device models (optional)
+        for (int i = 0; i < QVRManager::deviceCount(); i++) {
+            const QVRDevice& device = QVRManager::device(i);
+            for (int j = 0; j < device.modelNodeCount(); j++) {
+                QMatrix4x4 nodeMatrix = device.matrix();
+                nodeMatrix.translate(device.modelNodePosition(j));
+                nodeMatrix.rotate(device.modelNodeOrientation(j));
+                int vertexDataIndex = device.modelNodeVertexDataIndex(j);
+                int textureIndex = device.modelNodeTextureIndex(j);
+                Material material(1.0f, 1.0f, 1.0f,
+                        1.0f, 0.0f, 0.0f,
+                        _devModelTextures[textureIndex], 0, 0,
+                        1.0f);
+                setMaterial(material);
+                renderVao(projectionMatrix, context.viewMatrixPure(view), nodeMatrix,
+                        _devModelVaos[vertexDataIndex],
+                        _devModelVaoIndices[vertexDataIndex]);
+            }
+        }
+        // Invalidate depth attachment (to help OpenGL ES performance)
+        const GLenum fboInvalidations[] = { GL_DEPTH_ATTACHMENT };
+        glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, fboInvalidations);
+    }
+}
+#endif
+
+void Main::keyPressEvent(const QVRRenderContext& /* context */, QKeyEvent* event)
+{
+    switch (event->key())
+    {
+    case Qt::Key_Escape:
+        _wantExit = true;
+        break;
+    }
+}
+
+void Main::mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event)
+{
+    QPointF current = event->pos();
+    float yaw = -current.x() / context.windowGeometry().width();
+    float pitch = -current.y() / context.windowGeometry().height();
+
+    _orientation = QQuaternion::fromEulerAngles(pitch * 90 + 45, yaw * 360, 0.f);
+}
+
+void Main::mousePressEvent(const QVRRenderContext &context, QMouseEvent *event)
+{
+    switch (event->buttons()) {
+    case Qt::LeftButton:
+        _move = -1;
+        break;
+    case Qt::RightButton:
+        _move = 1;
+        break;
+    }
+}
+
+void Main::mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event)
+{
+    _move = 0;
 }
 
 #if(!MAZE)
@@ -420,136 +562,6 @@ void Main::render(QVRWindow* /* w */,
     }
 }
 #endif
-
-#if(MAZE)
-bool Main::initProcess(QVRProcess* /* p */)
-{
-    // Qt-based OpenGL function pointers
-    initializeOpenGLFunctions();
-
-    // FBO
-    glGenFramebuffers(1, &_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
-    glGenTextures(1, &_fboDepthTex);
-    glBindTexture(GL_TEXTURE_2D, _fboDepthTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 1, 1,
-            0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _fboDepthTex, 0);
-
-     // Device model data
-     for (int i = 0; i < QVRManager::deviceModelVertexDataCount(); i++) {
-         _devModelVaos.append(setupVao(
-                     QVRManager::deviceModelVertexCount(i),
-                     QVRManager::deviceModelVertexPositions(i),
-                     QVRManager::deviceModelVertexNormals(i),
-                     QVRManager::deviceModelVertexTexCoords(i),
-                     QVRManager::deviceModelVertexIndexCount(i),
-                     QVRManager::deviceModelVertexIndices(i)));
-         _devModelVaoIndices.append(QVRManager::deviceModelVertexIndexCount(i));
-     }
-     for (int i = 0; i < QVRManager::deviceModelTextureCount(); i++) {
-         _devModelTextures.append(setupTex(QVRManager::deviceModelTexture(i)));
-     }
-
-     std::shared_ptr<Maze> maze = std::make_shared<Maze>(16, 16);
-
-     // maze->addChild(
-     //            std::make_shared<Box>(
-     //                "box"
-     //                , std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)})
-     //                )
-     //            );
-
-    _root = maze;
-    _observerBox = std::make_shared<Box> (
-                "Observer"
-                , std::vector<QVector3D> {QVector3D(-SIZE, -SIZE, -SIZE), QVector3D(SIZE, SIZE, SIZE)}
-                );
-
-   return true;
-}
-
-void Main::render(QVRWindow* /* w */,
-        const QVRRenderContext& context, const unsigned int* textures)
-{
-    for (int view = 0; view < context.viewCount(); view++) {
-        // Get view dimensions
-        int width = context.textureSize(view).width();
-        int height = context.textureSize(view).height();
-        // Set up framebuffer object to render into
-        glBindTexture(GL_TEXTURE_2D, _fboDepthTex);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height,
-                0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
-        glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[view], 0);
-        // Set up view
-        glViewport(0, 0, width, height);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        QMatrix4x4 projectionMatrix = context.frustum(view).toMatrix4x4();
-        QMatrix4x4 viewMatrix = context.viewMatrix(view);
-        // Set up shader program
-        glEnable(GL_DEPTH_TEST);
-        // Render scene
-
-        _root->render(viewMatrix, projectionMatrix);
-        _observerBox->render(viewMatrix, projectionMatrix);
-
-        // Render device models (optional)
-        for (int i = 0; i < QVRManager::deviceCount(); i++) {
-            const QVRDevice& device = QVRManager::device(i);
-            for (int j = 0; j < device.modelNodeCount(); j++) {
-                QMatrix4x4 nodeMatrix = device.matrix();
-                nodeMatrix.translate(device.modelNodePosition(j));
-                nodeMatrix.rotate(device.modelNodeOrientation(j));
-                int vertexDataIndex = device.modelNodeVertexDataIndex(j);
-                int textureIndex = device.modelNodeTextureIndex(j);
-                Material material(1.0f, 1.0f, 1.0f,
-                        1.0f, 0.0f, 0.0f,
-                        _devModelTextures[textureIndex], 0, 0,
-                        1.0f);
-                setMaterial(material);
-                renderVao(projectionMatrix, context.viewMatrixPure(view), nodeMatrix,
-                        _devModelVaos[vertexDataIndex],
-                        _devModelVaoIndices[vertexDataIndex]);
-            }
-        }
-        // Invalidate depth attachment (to help OpenGL ES performance)
-        const GLenum fboInvalidations[] = { GL_DEPTH_ATTACHMENT };
-        glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, fboInvalidations);
-    }
-}
-#endif
-
-void Main::keyPressEvent(const QVRRenderContext& /* context */, QKeyEvent* event)
-{
-    switch (event->key())
-    {
-    case Qt::Key_Escape:
-        _wantExit = true;
-        break;
-    }
-}
-
-void Main::mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event)
-{
-    QPointF current = event->pos();
-    float yaw = -current.x() / context.windowGeometry().width();
-    float pitch = -current.y() / context.windowGeometry().height();
-
-    _orientation = QQuaternion::fromEulerAngles(pitch * 90 + 45, yaw * 360, 0.f);
-}
-
-void Main::mousePressEvent(const QVRRenderContext &context, QMouseEvent *event)
-{
-    _move = true;
-}
-
-void Main::mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event)
-{
-    _move = false;
-}
 
 int main(int argc, char* argv[])
 {

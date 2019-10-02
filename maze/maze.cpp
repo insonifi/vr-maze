@@ -303,19 +303,23 @@ QVector3D Maze::getRandomPos() const
    return position;
 }
 
-QVector3D Maze::collision(QVector3D position, QVector3D _movement)
+QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox observerBox)
 {
     QVector3D shift = QVector3D(_movement.x(), _movement.y(), _movement.z());
     //glm::vec3 shift = movement;
-    QVector3D size = QVector3D(0, 0, 0);
-    QVector3D position_f = position + shift;
     std::shared_ptr<Aabb> pos0_aabb =
-            std::make_shared<Aabb>(position - size, position + size);
+            std::make_shared<Aabb>(observerBox.a, observerBox.b);
     std::shared_ptr<Aabb> pos1_aabb =
-            std::make_shared<Aabb>(position_f - size, position_f + size);
+            std::make_shared<Aabb>(observerBox.a + shift, observerBox.b + shift);
 
     bool collides = false;
     std::vector<std::shared_ptr<Aabb>> aabb_collided;
+
+    // std::cout << "observer box: "
+    //           << observerBox.b.x() << ", "
+    //           << observerBox.b.y() << ", "
+    //           << observerBox.b.z() << std::endl;
+
 
     for (std::shared_ptr<Aabb> box : _aabb_list)
     {
@@ -330,7 +334,6 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement)
     if (!collides)
         return position + shift;
 
-    std::cout << "collision" << std::endl;
     BVec overlap = BVec(true);
 
     for (std::shared_ptr<Aabb> box : aabb_collided)
