@@ -21,6 +21,10 @@
  * SOFTWARE.
  */
 
+#if(1)
+#include <Windows.h>
+#endif
+
 #define MAZE 1
 #define CUSTOM_NAV true
 #define WALK_SPEED 1.f
