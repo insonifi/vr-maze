@@ -27,7 +27,7 @@
 
 #define MAZE 1
 #define CUSTOM_NAV true
-#define WALK_SPEED 1.f
+#define WALK_SPEED 2.f
 #define SIZE 0.2f
 
 #include <QGuiApplication>
@@ -272,6 +272,17 @@ bool Main::initProcess(QVRProcess* /* p */)
      }
 
      std::shared_ptr<Maze> maze = std::make_shared<Maze>(16, 16);
+
+     for (unsigned short i = 0; i < 10; i++)
+     {
+         QVector3D pos = maze->getRandomPos();
+         std::shared_ptr<Aabb> obstacle = std::make_shared<Aabb>(
+                     pos - QVector3D(0.2f, 0, 0.2f)
+                     , pos + QVector3D(0.2f, 1.0f, 0.5f)
+                     , true);
+         maze->addObstacle(obstacle);
+     }
+
 
      // maze->addChild(
      //            std::make_shared<Box>(

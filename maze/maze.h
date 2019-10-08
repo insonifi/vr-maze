@@ -18,6 +18,7 @@ public:
     Maze(unsigned short x = 16, unsigned short = 16);
     QVector3D getRandomPos() const;
     QVector3D collision(QVector3D position, QVector3D movement, BoundingBox observerBox);
+    void addObstacle(std::shared_ptr<Aabb> obstacle);
 
 private:
     std::vector<bool> _maze;
