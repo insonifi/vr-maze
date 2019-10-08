@@ -2,19 +2,13 @@
 
 #include "box.h"
 
-Box::Box(std::string name, std::vector<QVector3D> box):
-    Drawable(name), _box(box)
+Box::Box(std::string name, std::vector<QVector3D> box, QVector3D color):
+    Drawable(name), _box(box), _color(color)
 {
     initBuffers();
     Drawable::loadShader(
                 ":vertex-shader.glsl"
                 , ":fragment-shader_dbg.glsl"
-                );
-    Drawable::setMaterial(
-                Material(0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f
-                         ,0
-                         , getGLES() ? 0 : loadTexture(":floor-norm.jpg"), 0, 10.0f
-                         )
                 );
 }
 
@@ -85,9 +79,15 @@ void Box::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
     QOpenGLShaderProgram& prg = getShader();
 
     f->glUseProgram(prg.programId());
+    // prg.setUniformValue("color", _color);
     prg.setUniformValue("model_view_matrix", modelViewMatrix);
     prg.setUniformValue("projection_model_view_matrix", pMatrix * modelViewMatrix);
     prg.setUniformValue("normal_matrix", modelViewMatrix.normalMatrix());
     f->glBindVertexArray(getVao());
-    f->glDrawArrays(GL_LINES, 0, _vertexCount);
+    f->glDrawArrays(_drawLines ? GL_LINES : GL_TRIANGLE_STRIP, 0, _vertexCount);
+}
+
+void Box::setLines(bool lines)
+{
+    _drawLines = lines;
 }

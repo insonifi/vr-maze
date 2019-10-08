@@ -42,7 +42,7 @@ private:
     std::vector<std::shared_ptr<Drawable>> _children;
     std::string _name;
     Material _material;
-    QMatrix4x4 _modelMatrix;
+    QMatrix4x4 _modelMatrix = QMatrix();
     GLsizei _elementsCount;
     unsigned int _vao;
 };

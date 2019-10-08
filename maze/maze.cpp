@@ -1,5 +1,7 @@
 #include <bvec.hpp>
 #include <maze.h>
+#define DRAW_AABB true
+#define MAZE_SCALE 0.1f
 
 Maze::Maze(unsigned short width, unsigned short height) :
     Drawable("Maze"), _width(width), _height(height)
@@ -88,10 +90,10 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !fw)) && front.size() > 0)
             {
-                _aabb_list.push_back(std::make_shared<Aabb>(
+                addObstacle(std::make_shared<Aabb>(
                                          QVector3D(front.at(0) - 0.5f, -0.5f, front.at(1) - 0.5f)
                                          , QVector3D((x - 1) + 0.5f, 0.5f, y + 0.5f)
-                                         , true
+                                         , DRAW_AABB
                                          ));
                 front.clear();
             }
@@ -101,10 +103,10 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !bk)) && back.size() > 0)
             {
-                _aabb_list.push_back(std::make_shared<Aabb>(
+                addObstacle(std::make_shared<Aabb>(
                                          QVector3D(back.at(0) - 0.5f, -0.5f, back.at(1) - 0.5f)
                                          , QVector3D((x - 1) + 0.5f, 0.5f, y + 0.5f)
-                                         , true
+                                         , DRAW_AABB
                                          ));
                 back.clear();
             }
@@ -129,10 +131,10 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !fw)) && front.size() > 0)
             {
-                _aabb_list.push_back(std::make_shared<Aabb>(
+                addObstacle(std::make_shared<Aabb>(
                                          QVector3D(front.at(0) - 0.5f, -0.5f, front.at(1) - 0.5f)
                                          , QVector3D(x + 0.5f, 0.5f, (y - 1) + 0.5f)
-                                         , true));
+                                         , DRAW_AABB));
                 front.clear();
             }
             if (!block && bk && back.size() == 0)
@@ -141,29 +143,26 @@ void Maze::generateAabb()
             }
             if ((block || (!block && !bk)) && back.size() > 0)
             {
-                _aabb_list.push_back(std::make_shared<Aabb>(
+                addObstacle(std::make_shared<Aabb>(
                                          QVector3D(back.at(0) - 0.5f, -0.5f, back.at(1) - 0.5f)
                                          , QVector3D(x + 0.5f, 0.5f, (y - 1) + 0.5f)
-                                         , true));
+                                         , DRAW_AABB));
                 back.clear();
             }
         }
     }
 
     /** Outer Wall */// TODO: other sides
-    _aabb_list.push_back(std::make_shared<Aabb>(
+    addObstacle(std::make_shared<Aabb>(
                              QVector3D(-1 - 0.5f, -0.5f, 0 - 0.5f)
                              , QVector3D(- 0.5f, 0.5f, _height + 0.5f)
-                             , true));
+                             , DRAW_AABB));
 
     /** Floor */
-    _aabb_list.push_back(std::make_shared<Aabb>(
+    addObstacle(std::make_shared<Aabb>(
                              QVector3D(0 - 0.5f, -2.f, 0 - 0.5f)
                              , QVector3D(_width + 0.5f, -0.5f, _height + 0.5f)
-                             , true));
-
-    for (std::shared_ptr<Aabb> aabb : _aabb_list)
-        addChild(aabb);
+                             , DRAW_AABB));
 }
 
 void Maze::genFace(
@@ -300,7 +299,7 @@ QVector3D Maze::getRandomPos() const
              << position.x() << std::endl;
 
 
-   return position;
+   return position * getModelMatrix();
 }
 
 QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox observerBox)
@@ -326,6 +325,7 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox o
         bool overlaps = box->hasOverlap(*pos1_aabb);
 
         collides |= overlaps;
+        box->setCollided(overlaps);
 
         if (overlaps)
             aabb_collided.push_back(box);
@@ -350,4 +350,10 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox o
 
 
     return position + shift;
+}
+
+void Maze::addObstacle(std::shared_ptr<Aabb> obstacle)
+{
+    _aabb_list.push_back(obstacle);
+    addChild(obstacle);
 }
