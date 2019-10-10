@@ -8,7 +8,10 @@ Aabb::Aabb(QVector3D a, QVector3D b, bool renderable):
         ))
 {
     if (renderable)
-        addChild(std::make_shared<Box>("AABB", std::vector<QVector3D> {a, b}));
+    {
+        _box = std::make_shared<Box>("AABB", std::vector<QVector3D> {a, b});
+        addChild(_box);
+    }
 }
 
 BoundingBox Aabb::getBox() const
@@ -76,4 +79,17 @@ bool Aabb::hasOverlap(Aabb &aabb) const
 
 void Aabb::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
 {
+}
+
+void Aabb::setCollided(bool collided)
+{
+    _collided = collided;
+
+    if (_box)
+        _box->setLines(!collided);
+}
+
+bool Aabb::isCollided() const
+{
+    return _collided;
 }

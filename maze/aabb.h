@@ -48,11 +48,15 @@ public:
     Bound virtual boundsPoint(QVector3D point) const;
     BoundingBox getBox() const;
     std::vector<QVector3D> getAB() const;
+    bool isCollided() const;
+    void setCollided(bool collided);
 
 private:
     virtual void glRender(QMatrix4x4 &vMarix, QMatrix4x4 &pMatrix);
 
     BoundingBox _ab;
+    std::shared_ptr<Box> _box;
+    bool _collided;
 };
 
 #endif // AABB_H
