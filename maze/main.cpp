@@ -21,6 +21,8 @@
  * SOFTWARE.
  */
 
+#include <Windows.h>
+
 #define MAZE 1
 #define CUSTOM_NAV true
 #define WALK_SPEED 1.f
@@ -214,7 +216,7 @@ void Main::update(const QList<QVRObserver*>& observerList)
 
     position = _root->collision(
                 position
-                , _orientation.rotatedVector(QVector3D(0, 0, WALK_SPEED * _move * seconds))
+                , _orientation.rotatedVector(QVector3D(WALK_SPEED * _moveXAxis * seconds, 0, WALK_SPEED * _moveZAxis * seconds))
                 , _observerBox->getBox()
                 );
 
@@ -268,7 +270,6 @@ bool Main::initProcess(QVRProcess* /* p */)
      }
 
      std::shared_ptr<Maze> maze = std::make_shared<Maze>(16, 16);
-
      // maze->addChild(
      //            std::make_shared<Box>(
      //                "box"
@@ -344,7 +345,35 @@ void Main::keyPressEvent(const QVRRenderContext& /* context */, QKeyEvent* event
     case Qt::Key_Escape:
         _wantExit = true;
         break;
+	case Qt::Key_W:
+		_moveZAxis = -1;
+		break;
+	case Qt::Key_S:
+		_moveZAxis = 1;
+		break;
+	case Qt::Key_D:
+		_moveXAxis = 1;
+		break;
+	case Qt::Key_A:
+		_moveXAxis = -1;
+		break;
     }
+}
+
+void Main::keyReleaseEvent(const QVRRenderContext& /* context */, QKeyEvent* event) {
+	_moveZAxis = 0;
+	_moveXAxis = 0;
+}
+
+void Main::deviceAnalogChangeEvent(QVRDeviceEvent *event) {
+	switch (event->analog()) {
+		case QVR_Analog_Axis_Y:
+			_moveZAxis = event->device().analogValue(QVR_Analog_Axis_Y);
+			break;
+		case QVR_Analog_Axis_X:
+			_moveXAxis = event->device().analogValue(QVR_Analog_Axis_X);
+			break;
+	}
 }
 
 void Main::mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event)
@@ -360,17 +389,17 @@ void Main::mousePressEvent(const QVRRenderContext &context, QMouseEvent *event)
 {
     switch (event->buttons()) {
     case Qt::LeftButton:
-        _move = -1;
+        _moveZAxis = -1;
         break;
     case Qt::RightButton:
-        _move = 1;
+        _moveZAxis = 1;
         break;
     }
 }
 
 void Main::mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event)
 {
-    _move = 0;
+    _moveZAxis = 0;
 }
 
 #if(!MAZE)

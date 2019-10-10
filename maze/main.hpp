@@ -68,7 +68,8 @@ private:
     bool _mazeInited = false;         // Flag indicated whether we have already adjusted the maze position
     QPointF _mousePos = QPointF(0, 0);
     QQuaternion _orientation;
-    float _move = 0;               // Move forward
+    float _moveZAxis = 0;               // Move forward/backward
+	float _moveXAxis = 0;				// Move left/right
     std::shared_ptr<Aabb> _observerBox;// Box of the observer
 
     /* Dynamic data for rendering. This needs to be serialized for multi-process
@@ -105,6 +106,8 @@ public:
 
     void keyPressEvent(const QVRRenderContext& context, QKeyEvent* event) override;
 
+	void keyReleaseEvent(const QVRRenderContext &, QKeyEvent * event);
+	void deviceAnalogChangeEvent(QVRDeviceEvent * event) override;
     void mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event) override;
     void mousePressEvent(const QVRRenderContext &context, QMouseEvent *event) override;
     void mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event) override;
