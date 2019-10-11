@@ -223,8 +223,9 @@ void Main::update(const QList<QVRObserver*>& observerList)
 		, _observerBox->getBox()
 	);
 
-	_position = position;// QVector3D(position.x(), 0, position.z());
-
+	_position = QVector3D(position.x(), 0, position.z());
+	observer->setTracking(_position, _orientation);
+	
 	QMatrix4x4 translation;
 	translation.translate(observer->trackingPosition());
 
