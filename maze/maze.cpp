@@ -34,10 +34,10 @@ void Maze::initMaze()
 
 void Maze::addRandomLoop()
 {
-    unsigned short xa = static_cast<unsigned short> (rand()) % _width / 2;
-    unsigned short xb = static_cast<unsigned short> (rand()) % _width / 2 + xa;
-    unsigned short ya = static_cast<unsigned short> (rand()) % _height / 2;
-    unsigned short yb = static_cast<unsigned short> (rand()) % _height / 2 + ya;
+    unsigned short xa = static_cast<unsigned short> (rand()) % (_width / 2);
+    unsigned short xb = static_cast<unsigned short> (rand()) % (_width - xa) + xa;
+    unsigned short ya = static_cast<unsigned short> (rand()) % (_height / 2);
+    unsigned short yb = static_cast<unsigned short> (rand()) % (_height - ya) + ya;
 
     for (unsigned short x = xa; x <= xb; x++)
     {
@@ -267,7 +267,7 @@ void Maze::generateGeometry() {
                 //     QMatrix4x4 t = QMatrix4x4(t0);
                 //     t.rotate(-180.0f, QVector3D(0, 1, 0));
 
-                //	genFace(&vertices, &normals, &texcoords, &indices, t);
+                //     genFace(&vertices, &normals, &texcoords, &indices, t);
                 // }
             }
     Drawable::initBuffers(&vertices, &normals, &texcoords, &indices);
@@ -305,7 +305,6 @@ QVector3D Maze::getRandomPos() const
 QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox observerBox)
 {
     QVector3D shift = QVector3D(_movement.x(), _movement.y(), _movement.z());
-    //glm::vec3 shift = movement;
     std::shared_ptr<Aabb> pos0_aabb =
             std::make_shared<Aabb>(observerBox.a, observerBox.b);
     std::shared_ptr<Aabb> pos1_aabb =
@@ -327,7 +326,7 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox o
         collides |= overlaps;
         box->setCollided(overlaps);
 
-        if (overlaps)
+        if (overlaps && box->isObstacle())
             aabb_collided.push_back(box);
     }
 
@@ -343,9 +342,9 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox o
     }
 
     shift = QVector3D(
-                  (overlap.x ? shift.x() : 0)
-                , (overlap.y ? shift.y() : 0)
-                , (overlap.z ? shift.z() : 0)
+                  (overlap.x ? shift.x() : -shift.x())
+                , (overlap.y ? shift.y() : -shift.y())
+                , (overlap.z ? shift.z() : -shift.z())
                 );
 
 

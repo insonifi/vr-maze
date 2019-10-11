@@ -24,6 +24,7 @@
 #ifndef QVR_EXAMPLE_OPENGL_HPP
 #define QVR_EXAMPLE_OPENGL_HPP
 
+#include <QObject>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QElapsedTimer>
@@ -33,9 +34,11 @@ class QImage;
 #include <aabb.h>
 #include <drawable.h>
 #include <maze.h>
+#include <line.h>
 
-class Main : public QVRApp, protected QOpenGLExtraFunctions
+class Main : public QObject, public QVRApp, protected QOpenGLExtraFunctions
 {
+    Q_OBJECT
 public:
     Main();
 
@@ -71,6 +74,9 @@ private:
     float _moveZAxis = 0;               // Move forward/backward
 	float _moveXAxis = 0;				// Move left/right
     std::shared_ptr<Aabb> _observerBox;// Box of the observer
+    std::shared_ptr<Line> _line;
+    std::vector<std::shared_ptr<Aabb>> _obstacles;
+    bool _obstaclesAnimated = false;
 
     /* Dynamic data for rendering. This needs to be serialized for multi-process
      * rendering) */
@@ -91,6 +97,7 @@ private:
             unsigned int vao, unsigned int indices);
 
     QVector3D collisionAdjust(QVector3D position, QVector3D movement, float size = 0.5f);
+    void animateObstacles(QVector3D transform);
 
 public:
     void serializeDynamicData(QDataStream& ds) const override;
@@ -111,6 +118,11 @@ public:
     void mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event) override;
     void mousePressEvent(const QVRRenderContext &context, QMouseEvent *event) override;
     void mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event) override;
+public slots:
+    void buttonHit();
+    void drop();
+    void reachedGoal();
+    void stop();
 };
 
 #endif

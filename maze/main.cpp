@@ -21,16 +21,19 @@
  * SOFTWARE.
  */
 
-#include <Windows.h>
-
 #define MAZE 1
 #define CUSTOM_NAV true
-#define WALK_SPEED 2.f
-#define SIZE 0.2f
+#define WALK_SPEED 4.f
+#define SIZE 0.1f
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QImage>
+#include <QTimer>
 
 #include <qvr/observer.hpp>
 #include <qvr/manager.hpp>
@@ -41,12 +44,15 @@
 
 #include "geometries.hpp"
 
-
+static QString BUTTON = QString("Button");
+static QString GOAL = QString("Goal");
 static bool isGLES = false; // is this OpenGL ES or plain OpenGL?
 
+const float ANIMATION_SPEED = 0.1f;
+
 Main::Main() :
-    _wantExit(false),
-    _objectRotationAngle(0.0f)
+  _wantExit(false)
+  , _objectRotationAngle(0.0f)
 {
     _timer.start();
 }
@@ -176,7 +182,7 @@ void Main::deserializeDynamicData(QDataStream& ds)
 
 void Main::update(const QList<QVRObserver*>& observerList)
 {
-    float seconds = _timer.elapsed() / 1000.0f;
+    float millis = _timer.elapsed();
     _timer.restart();
 
     // Trigger a haptic pulse on devices that support it
@@ -201,7 +207,7 @@ void Main::update(const QList<QVRObserver*>& observerList)
 
         initMazeTransform.translate(positionTracking);
         initMazeTransform.translate(-_root->getRandomPos());
-        _root->update(initMazeTransform, 0);
+        _root->setGlobalTransform(initMazeTransform);
         _mazeInited = true;
     }
 
@@ -212,7 +218,7 @@ void Main::update(const QList<QVRObserver*>& observerList)
     QMatrix4x4 observerTransform = translation;
 
     observerTransform.translate(positionTracking);
-    _observerBox->update(observerTransform, seconds);
+    _observerBox->setGlobalTransform(observerTransform);
 
     position = _root->collision(
                 position
@@ -221,6 +227,10 @@ void Main::update(const QList<QVRObserver*>& observerList)
                 );
 
     observer->setNavigation(position , _orientation);
+
+     for (std::shared_ptr<Aabb> obstacle : _obstacles)
+         obstacle->update(QMatrix4x4(), millis);
+    //_root->update(QMatrix4x4(), millis);
 }
 
 bool Main::wantExit()
@@ -269,33 +279,66 @@ bool Main::initProcess(QVRProcess* /* p */)
          _devModelTextures.append(setupTex(QVRManager::deviceModelTexture(i)));
      }
 
-     std::shared_ptr<Maze> maze = std::make_shared<Maze>(16, 16);
+     std::shared_ptr<Maze> maze = std::make_shared<Maze>(32, 32);
 
 
      for (unsigned short i = 0; i < 10; i++)
      {
          QVector3D pos = maze->getRandomPos();
          std::shared_ptr<Aabb> obstacle = std::make_shared<Aabb>(
-                     pos - QVector3D(0.2f, 0, 0.2f)
-                     , pos + QVector3D(0.2f, 1.0f, 0.5f)
-                     , true);
+                     pos - QVector3D(0.2f, .8, 0.2f)
+                     , pos + QVector3D(0.2f, 0.2f, 0.5f)
+                     , true
+                     , QVector3D(0, 1, 1));
          maze->addObstacle(obstacle);
+         _obstacles.push_back(obstacle);
+
+         pos = maze->getRandomPos();
+         std::shared_ptr<Aabb> button = std::make_shared<Aabb>(
+                     pos - QVector3D(0.2f, 0.5, 0.2f)
+                     , pos + QVector3D(0.2f, 0.3, 0.2f)
+                     , true
+                     , QVector3D(0.5, 0.5, 1)
+                     , BUTTON);
+
+         maze->addObstacle(button);
+
+         QObject::connect(button.get()
+                          , &Aabb::collided
+                          , this
+                          , &Main::buttonHit
+                          );
+
+         pos = maze->getRandomPos();
+         std::shared_ptr<Aabb> goal = std::make_shared<Aabb>(
+                     pos - QVector3D(0.2f, 0.5, 0.2f)
+                     , pos + QVector3D(0.2f, 0.2, 0.2f)
+                     , true
+                     , QVector3D(0, 1, 0)
+                     , GOAL);
+
+         maze->addObstacle(goal);
+
+         QObject::connect(goal.get()
+                          , &Aabb::collided
+                          , this
+                          , &Main::reachedGoal
+                          );
      }
-
-
-     // maze->addChild(
-     //            std::make_shared<Box>(
-     //                "box"
-     //                , std::vector<QVector3D>({QVector3D(0, 0, 0), QVector3D(1, 1, 1)})
-     //                )
-     //            );
 
     _root = maze;
     _observerBox = std::make_shared<Aabb> (
                 QVector3D(-SIZE, -SIZE, -SIZE)
                 , QVector3D(SIZE, SIZE, SIZE)
                 , true
+                , QVector3D(1, 0.8f, 0)
                 );
+    _line = std::make_shared<Line> ("ray"
+                                    , std::vector<QVector3D>({QVector3D(), QVector3D()})
+                                    , QVector3D(1, 1, 0)
+                                    );
+
+    maze->addChild(_line);
 
    return true;
 }
@@ -324,6 +367,18 @@ void Main::render(QVRWindow* /* w */,
 
         _observerBox->render(viewMatrix, projectionMatrix);
         _root->render(viewMatrix, projectionMatrix);
+
+        QRect viewport = QRect(0, 0, width, height);
+        QVector3D line_p0 = QVector3D(width / 2,  height / 2, 0);
+        QVector3D line_p1 = QVector3D(_mousePos.x(), _mousePos.y(), 1);
+
+        line_p0.unproject(viewMatrix, projectionMatrix, viewport);
+        line_p1.unproject(viewMatrix, projectionMatrix, viewport);
+
+        _line->setLine(std::vector<QVector3D>({
+                                                  line_p0
+                                                  , line_p1
+                                              }));
 
         // Render device models (optional)
         for (int i = 0; i < QVRManager::deviceCount(); i++) {
@@ -395,6 +450,7 @@ void Main::mouseMoveEvent(const QVRRenderContext &context, QMouseEvent *event)
     float yaw = -current.x() / context.windowGeometry().width();
     float pitch = -current.y() / context.windowGeometry().height();
 
+    _mousePos = current;
     _orientation = QQuaternion::fromEulerAngles(pitch * 90 + 45, yaw * 360, 0.f);
 }
 
@@ -415,6 +471,42 @@ void Main::mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event
     _moveZAxis = 0;
 }
 
+void Main::buttonHit()
+{
+    if (_obstaclesAnimated)
+        return;
+
+    _obstaclesAnimated = true;
+    std::cout << "lifting" << std::endl;
+    QTimer::singleShot(10 * 1000, this, &Main::drop);
+
+    animateObstacles(QVector3D(0, 1, 0) * ANIMATION_SPEED);
+}
+
+void Main::reachedGoal()
+{
+    _wantExit = true;
+}
+
+void Main::drop()
+{
+    std::cout << "dropping" << std::endl;
+    QTimer::singleShot(10 * 1000, this, &Main::stop);
+
+    animateObstacles(QVector3D(0, -1, 0) * ANIMATION_SPEED);
+}
+
+void Main::stop()
+{
+    animateObstacles(QVector3D(0, 0, 0));
+    _obstaclesAnimated = false;
+}
+
+void Main::animateObstacles(QVector3D offset)
+{
+    for (std::shared_ptr<Aabb> obstacle : _obstacles)
+        obstacle->move(offset);
+}
 #if(!MAZE)
 bool Main::initProcess(QVRProcess* /* p */)
 {
@@ -607,6 +699,8 @@ void Main::render(QVRWindow* /* w */,
 
 int main(int argc, char* argv[])
 {
+    srand (time(NULL));
+
     QGuiApplication app(argc, argv);
     QVRManager manager(argc, argv);
 

@@ -5,6 +5,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QFile>
 #include <QImage>
+#include <QMatrix4x4>
 #include <vector>
 #include <memory>
 #include <iostream>
@@ -14,7 +15,9 @@ class Drawable : protected QOpenGLExtraFunctions
 {
 public:
     Drawable(std::string name);
-    void update(QMatrix4x4 modelMatrix, float elapsedMilli);
+    void update(QMatrix4x4 m, float elapsedMilli);
+    void setGlobalTransform(QMatrix4x4 m);
+    void setLocalTransform(QMatrix4x4 m);
     void render(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);
     void addChild(std::shared_ptr<Drawable> child);
     void setMaterial(const Material material);
@@ -25,7 +28,6 @@ public:
     QOpenGLShaderProgram& getShader();
     GLuint getVao();
     void setVao(GLuint vao);
-    QMatrix4x4& getModelMatrix();
     void loadShader(const char* vertShaderPath, const char* fragShaderPath);
     unsigned int loadTexture(const QString& filename);
     unsigned int loadTexture(const QImage& img);
@@ -33,7 +35,9 @@ public:
     static void setGLES(bool isGLES);
     static bool getGLES();
     static bool isGLES;
+    void move(QVector3D offset);
     QMatrix4x4 getModelMatrix() const;
+    QMatrix4x4 getLocalTransform() const;
 
 private:
     virtual void glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);
@@ -42,8 +46,11 @@ private:
     std::vector<std::shared_ptr<Drawable>> _children;
     std::string _name;
     Material _material;
-    QMatrix4x4 _modelMatrix = QMatrix();
+    QMatrix4x4 _globalTransform;
+    QMatrix4x4 _localTransform;
+    float _a = 0.f;
     GLsizei _elementsCount;
+    QVector3D _offset = QVector3D();
     unsigned int _vao;
 };
 

@@ -1,15 +1,22 @@
 #include "aabb.h"
 
-Aabb::Aabb(QVector3D a, QVector3D b, bool renderable):
-    Drawable("AABB"),
-    _ab(BoundingBox(
+Aabb::Aabb(QVector3D a
+           , QVector3D b
+           , bool renderable
+           , QVector3D color
+           , QString name
+           , QObject* parent):
+  Drawable("AABB " + name.toStdString())
+  , QObject(parent)
+  , _ab(BoundingBox(
             b.lengthSquared() > a.lengthSquared() ? a : b
           , b.lengthSquared() > a.lengthSquared() ? b : a
         ))
+  , _name(name)
 {
     if (renderable)
     {
-        _box = std::make_shared<Box>("AABB", std::vector<QVector3D> {a, b});
+        _box = std::make_shared<Box>("AABB", std::vector<QVector3D> {a, b}, color);
         addChild(_box);
     }
 }
@@ -34,16 +41,13 @@ BVec Aabb::getOverlap(Aabb &aabb) const
 {
     BoundingBox box0 = getBox();
     BoundingBox box1 = aabb.getBox();
-    QVector3D a = box0.a;
-    QVector3D b = box0.b;
 
-
-    bool overlapX = b.x() > box1.a.x()
-            && box1.b.x() > a.x();
-    bool overlapY = b.y() > box1.a.y()
-            && box1.b.y() > a.y();
-    bool overlapZ = b.z() > box1.a.z()
-            && box1.b.z() > a.z();
+    bool overlapX = box0.b.x() > box1.a.x()
+            && box1.b.x() > box0.a.x();
+    bool overlapY = box0.b.y() > box1.a.y()
+            && box1.b.y() > box0.a.y();
+    bool overlapZ = box0.b.z() > box1.a.z()
+            && box1.b.z() > box0.a.z();
 
     return BVec(overlapX, overlapY, overlapZ);
 }
@@ -83,6 +87,9 @@ void Aabb::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
 
 void Aabb::setCollided(bool collided)
 {
+    if (collided && _collided != collided)
+        emit this->collided();
+
     _collided = collided;
 
     if (_box)
@@ -92,4 +99,14 @@ void Aabb::setCollided(bool collided)
 bool Aabb::isCollided() const
 {
     return _collided;
+}
+
+QString Aabb::getName() const
+{
+    return _name;
+}
+
+bool Aabb::isObstacle() const
+{
+    return _name.isEmpty();
 }
