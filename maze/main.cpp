@@ -29,6 +29,7 @@
 #define CUSTOM_NAV true
 #define WALK_SPEED .001f
 #define SIZE 0.1f
+#define LIFT_TIME 3 * 1000.f
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -483,7 +484,7 @@ void Main::buttonHit()
 
     _obstaclesAnimated = true;
     std::cout << "lifting" << std::endl;
-    QTimer::singleShot(10 * 1000, this, &Main::drop);
+    QTimer::singleShot(LIFT_TIME, this, &Main::drop);
 
     animateObstacles(QVector3D(0, 1, 0) * ANIMATION_SPEED);
 }
@@ -496,7 +497,7 @@ void Main::reachedGoal()
 void Main::drop()
 {
     std::cout << "dropping" << std::endl;
-    QTimer::singleShot(10 * 1000, this, &Main::stop);
+    QTimer::singleShot(LIFT_TIME, this, &Main::stop);
 
     animateObstacles(QVector3D(0, -1, 0) * ANIMATION_SPEED);
 }
