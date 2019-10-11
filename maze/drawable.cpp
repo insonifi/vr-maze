@@ -1,15 +1,33 @@
 #include "drawable.h"
+#define ANIMATION_SPEED 0.01f
 
 Drawable::Drawable(std::string name): _name(name)
 {
 }
 
-void Drawable::update(QMatrix4x4 modelMatrix, float elapsedMilli)
+void Drawable::update(QMatrix4x4 transform, float elapsedMilli)
 {
-    _modelMatrix = modelMatrix;
+    _globalTransform = transform;
+    _localTransform.translate(_offset);
 
     for (std::shared_ptr<Drawable> child : _children)
-        child->update(modelMatrix, elapsedMilli);
+         child->update(_localTransform * _globalTransform, elapsedMilli);
+}
+
+void Drawable::setLocalTransform(QMatrix4x4 m)
+{
+    _localTransform = m;
+
+    for (std::shared_ptr<Drawable> child : _children)
+        child->setLocalTransform(m);
+}
+
+void Drawable::setGlobalTransform(QMatrix4x4 m)
+{
+    _globalTransform = m;
+
+    for (std::shared_ptr<Drawable> child : _children)
+        child->setGlobalTransform(m);
 }
 
 void Drawable::render(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
@@ -24,7 +42,7 @@ void Drawable::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
 {
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-    f->glUseProgram(_prg.programId());
+    _prg.bind();
 
     f->glActiveTexture(GL_TEXTURE0);
     f->glBindTexture(GL_TEXTURE_2D, _material.diffTex);
@@ -34,12 +52,14 @@ void Drawable::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
     f->glBindTexture(GL_TEXTURE_2D, _material.specTex);
 
     // Projection
-    QMatrix4x4 modelViewMatrix = vMatrix * _modelMatrix;
+    QMatrix4x4 modelViewMatrix = vMatrix * _globalTransform * _localTransform;
     _prg.setUniformValue("model_view_matrix", modelViewMatrix);
     _prg.setUniformValue("projection_model_view_matrix", pMatrix * modelViewMatrix);
     _prg.setUniformValue("normal_matrix", modelViewMatrix.normalMatrix());
     f->glBindVertexArray(_vao);
     f->glDrawElements(GL_TRIANGLES, _elementsCount, GL_UNSIGNED_SHORT, nullptr);
+
+    _prg.release();
 }
 
 void Drawable::initBuffers(std::vector<QVector3D> *vertices
@@ -126,10 +146,9 @@ unsigned int Drawable::loadTexture(const QImage& img)
 
 void Drawable::setMaterial(const Material m)
 {
-    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
     _material = m;
 
-    f->glUseProgram(_prg.programId());
+    _prg.bind();
 
     // Material
     _prg.setUniformValue("material_color", m.r, m.g, m.b);
@@ -143,6 +162,8 @@ void Drawable::setMaterial(const Material m)
     _prg.setUniformValue("material_has_spec_tex", m.specTex == 0 ? 0 : 1);
     _prg.setUniformValue("material_spec_tex", 2);
     _prg.setUniformValue("material_tex_coord_factor", m.texCoordFactor);
+
+    _prg.release();
 }
 
 QString Drawable::readFile(const char* fileName)
@@ -189,9 +210,14 @@ void Drawable::setVao(GLuint vao)
     _vao = vao;
 }
 
-QMatrix4x4& Drawable::getModelMatrix()
+QMatrix4x4 Drawable::getModelMatrix() const
 {
-    return _modelMatrix;
+    return _globalTransform * _localTransform;
+}
+
+QMatrix4x4 Drawable::getLocalTransform() const
+{
+    return _localTransform;
 }
 
 void Drawable::setGLES(bool isGLES)
@@ -206,7 +232,7 @@ bool Drawable::getGLES()
 
 bool Drawable::isGLES = false;
 
-QMatrix4x4 Drawable::getModelMatrix() const
+void Drawable::move(QVector3D offset)
 {
-    return _modelMatrix;
+    _offset = offset;
 }
