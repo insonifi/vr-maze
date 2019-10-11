@@ -5,6 +5,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QFile>
 #include <QImage>
+#include <QMatrix4x4>
 #include <vector>
 #include <memory>
 #include <iostream>
@@ -36,6 +37,7 @@ public:
     static bool isGLES;
     void move(QVector3D offset);
     QMatrix4x4 getModelMatrix() const;
+    QMatrix4x4 getLocalTransform() const;
 
 private:
     virtual void glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix);
@@ -44,8 +46,8 @@ private:
     std::vector<std::shared_ptr<Drawable>> _children;
     std::string _name;
     Material _material;
-    QMatrix4x4 _globalTransform = QMatrix();
-    QMatrix4x4 _localTransform = QMatrix();
+    QMatrix4x4 _globalTransform;
+    QMatrix4x4 _localTransform;
     float _a = 0.f;
     GLsizei _elementsCount;
     QVector3D _offset = QVector3D();

@@ -75,6 +75,7 @@ private:
     std::shared_ptr<Aabb> _observerBox;// Box of the observer
     std::shared_ptr<Line> _line;
     std::vector<std::shared_ptr<Aabb>> _obstacles;
+    bool _obstaclesAnimated = false;
 
     /* Dynamic data for rendering. This needs to be serialized for multi-process
      * rendering) */

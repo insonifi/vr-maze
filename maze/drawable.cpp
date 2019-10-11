@@ -11,7 +11,7 @@ void Drawable::update(QMatrix4x4 transform, float elapsedMilli)
     _localTransform.translate(_offset);
 
     for (std::shared_ptr<Drawable> child : _children)
-         child->update(_globalTransform * _localTransform, elapsedMilli);
+         child->update(_localTransform * _globalTransform, elapsedMilli);
 }
 
 void Drawable::setLocalTransform(QMatrix4x4 m)
@@ -213,6 +213,11 @@ void Drawable::setVao(GLuint vao)
 QMatrix4x4 Drawable::getModelMatrix() const
 {
     return _globalTransform * _localTransform;
+}
+
+QMatrix4x4 Drawable::getLocalTransform() const
+{
+    return _localTransform;
 }
 
 void Drawable::setGLES(bool isGLES)

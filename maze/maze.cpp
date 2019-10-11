@@ -267,7 +267,7 @@ void Maze::generateGeometry() {
                 //     QMatrix4x4 t = QMatrix4x4(t0);
                 //     t.rotate(-180.0f, QVector3D(0, 1, 0));
 
-                //	genFace(&vertices, &normals, &texcoords, &indices, t);
+                //     genFace(&vertices, &normals, &texcoords, &indices, t);
                 // }
             }
     Drawable::initBuffers(&vertices, &normals, &texcoords, &indices);
@@ -304,9 +304,6 @@ QVector3D Maze::getRandomPos() const
 
 QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox observerBox)
 {
-    if (_movement.length() < 0.01f)
-        return position;
-
     QVector3D shift = QVector3D(_movement.x(), _movement.y(), _movement.z());
     std::shared_ptr<Aabb> pos0_aabb =
             std::make_shared<Aabb>(observerBox.a, observerBox.b);
@@ -345,9 +342,9 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox o
     }
 
     shift = QVector3D(
-                  (overlap.x ? shift.x() : 0)
-                , (overlap.y ? shift.y() : 0)
-                , (overlap.z ? shift.z() : 0)
+                  (overlap.x ? shift.x() : -shift.x())
+                , (overlap.y ? shift.y() : -shift.y())
+                , (overlap.z ? shift.z() : -shift.z())
                 );
 
 

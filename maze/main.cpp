@@ -23,7 +23,7 @@
 
 #define MAZE 1
 #define CUSTOM_NAV true
-#define WALK_SPEED 2.f
+#define WALK_SPEED 4.f
 #define SIZE 0.1f
 
 #ifdef _WIN32
@@ -228,8 +228,9 @@ void Main::update(const QList<QVRObserver*>& observerList)
 
     observer->setNavigation(position , _orientation);
 
-    for (std::shared_ptr<Aabb> obstacle : _obstacles)
-        obstacle->update(QMatrix4x4(), millis);
+     for (std::shared_ptr<Aabb> obstacle : _obstacles)
+         obstacle->update(QMatrix4x4(), millis);
+    //_root->update(QMatrix4x4(), millis);
 }
 
 bool Main::wantExit()
@@ -285,7 +286,7 @@ bool Main::initProcess(QVRProcess* /* p */)
          QVector3D pos = maze->getRandomPos();
          std::shared_ptr<Aabb> obstacle = std::make_shared<Aabb>(
                      pos - QVector3D(0.2f, .8, 0.2f)
-                     , pos + QVector3D(0.2f, 0.5f, 0.5f)
+                     , pos + QVector3D(0.2f, 0.2f, 0.5f)
                      , true
                      , QVector3D(0, 1, 1));
          maze->addObstacle(obstacle);
@@ -329,6 +330,7 @@ bool Main::initProcess(QVRProcess* /* p */)
                 QVector3D(-SIZE, -SIZE, -SIZE)
                 , QVector3D(SIZE, SIZE, SIZE)
                 , true
+                , QVector3D(1, 0.8f, 0)
                 );
     _line = std::make_shared<Line> ("ray"
                                     , std::vector<QVector3D>({QVector3D(), QVector3D()})
@@ -442,7 +444,11 @@ void Main::mouseReleaseEvent(const QVRRenderContext &context, QMouseEvent *event
 
 void Main::buttonHit()
 {
-    std::cout << "hit" << std::endl;
+    if (_obstaclesAnimated)
+        return;
+
+    _obstaclesAnimated = true;
+    std::cout << "lifting" << std::endl;
     QTimer::singleShot(10 * 1000, this, &Main::drop);
 
     animateObstacles(QVector3D(0, 1, 0) * ANIMATION_SPEED);
@@ -456,6 +462,7 @@ void Main::reachedGoal()
 void Main::drop()
 {
     std::cout << "dropping" << std::endl;
+    QTimer::singleShot(10 * 1000, this, &Main::stop);
 
     animateObstacles(QVector3D(0, -1, 0) * ANIMATION_SPEED);
 }
@@ -463,14 +470,13 @@ void Main::drop()
 void Main::stop()
 {
     animateObstacles(QVector3D(0, 0, 0));
+    _obstaclesAnimated = false;
 }
 
 void Main::animateObstacles(QVector3D offset)
 {
     for (std::shared_ptr<Aabb> obstacle : _obstacles)
-    {
         obstacle->move(offset);
-    }
 }
 #if(!MAZE)
 bool Main::initProcess(QVRProcess* /* p */)
