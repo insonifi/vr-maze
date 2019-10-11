@@ -34,10 +34,10 @@ void Maze::initMaze()
 
 void Maze::addRandomLoop()
 {
-    unsigned short xa = static_cast<unsigned short> (rand()) % _width / 2;
-    unsigned short xb = static_cast<unsigned short> (rand()) % _width / 2 + xa;
-    unsigned short ya = static_cast<unsigned short> (rand()) % _height / 2;
-    unsigned short yb = static_cast<unsigned short> (rand()) % _height / 2 + ya;
+    unsigned short xa = static_cast<unsigned short> (rand()) % (_width / 2);
+    unsigned short xb = static_cast<unsigned short> (rand()) % (_width - xa) + xa;
+    unsigned short ya = static_cast<unsigned short> (rand()) % (_height / 2);
+    unsigned short yb = static_cast<unsigned short> (rand()) % (_height - ya) + ya;
 
     for (unsigned short x = xa; x <= xb; x++)
     {
@@ -304,8 +304,10 @@ QVector3D Maze::getRandomPos() const
 
 QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox observerBox)
 {
+    if (_movement.length() < 0.01f)
+        return position;
+
     QVector3D shift = QVector3D(_movement.x(), _movement.y(), _movement.z());
-    //glm::vec3 shift = movement;
     std::shared_ptr<Aabb> pos0_aabb =
             std::make_shared<Aabb>(observerBox.a, observerBox.b);
     std::shared_ptr<Aabb> pos1_aabb =
@@ -327,7 +329,7 @@ QVector3D Maze::collision(QVector3D position, QVector3D _movement, BoundingBox o
         collides |= overlaps;
         box->setCollided(overlaps);
 
-        if (overlaps)
+        if (overlaps && box->isObstacle())
             aabb_collided.push_back(box);
     }
 

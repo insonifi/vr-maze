@@ -26,6 +26,7 @@ add_executable(maze
     geometries.cpp geometries.hpp
     main.cpp main.hpp
     drawable.cpp
+    line.cpp
     maze.cpp
     material.h
     ${RESOURCES})

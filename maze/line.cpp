@@ -1,59 +1,30 @@
 #include <iostream>
 
-#include "box.h"
+#include "line.h"
 
-Box::Box(std::string name, std::vector<QVector3D> box, QVector3D color):
-    Drawable(name), _box(box), _color(color)
+Line::Line(std::string name, std::vector<QVector3D> line, QVector3D color):
+    Drawable(name), _color(color)
 {
-    initBuffers();
+    setLine(line);
     Drawable::loadShader(
                 ":vertex-shader.glsl"
                 , ":fragment-shader_dbg.glsl"
                 );
 }
 
-void Box::initBuffers()
+void Line::initBuffers()
 {
-    QVector3D k = _box.at(0);
-    QVector3D l = _box.at(1);
-
-    QVector3D p1 = QVector3D(k.x(), k.y(), k.z());
-    QVector3D p2 = QVector3D(k.x(), k.y(), l.z());
-    QVector3D p3 = QVector3D(l.x(), k.y(), l.z());
-    QVector3D p4 = QVector3D(l.x(), k.y(), k.z());
-
-    QVector3D p5 = QVector3D(k.x(), l.y(), k.z());
-    QVector3D p6 = QVector3D(k.x(), l.y(), l.z());
-    QVector3D p7 = QVector3D(l.x(), l.y(), l.z());
-    QVector3D p8 = QVector3D(l.x(), l.y(), k.z());
-
-    std::vector<QVector3D> vertices = {
-        p1, p2
-        , p2, p3
-        , p3, p4
-        , p4, p1
-
-        , p5, p6
-        , p6, p7
-        , p7, p8
-        , p8, p5
-
-        , p1, p5
-        , p2, p6
-        , p3, p7
-        , p4, p8
-    };
-
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-    GLuint vao;
+    GLuint vao = getVao();
 
-    f->glGenVertexArrays(1, &vao);
+    if (vao == 0)
+        f->glGenVertexArrays(1, &vao);
     f->glBindVertexArray(vao);
 
     GLuint vertexBuf;
     f->glGenBuffers(1, &vertexBuf);
     f->glBindBuffer(GL_ARRAY_BUFFER, vertexBuf);
-    f->glBufferData(GL_ARRAY_BUFFER, GLsizeiptr (vertices.size() * sizeof(QVector3D)), vertices.data(), GL_STATIC_DRAW);
+    f->glBufferData(GL_ARRAY_BUFFER, GLsizeiptr (_line.size() * sizeof(QVector3D)), _line.data(), GL_DYNAMIC_DRAW);
 
     f->glEnableVertexAttribArray(0);
     f->glVertexAttribPointer(
@@ -68,12 +39,14 @@ void Box::initBuffers()
     f->glBindVertexArray(0);
     f->glDeleteBuffers(1, &vertexBuf);
 
-    _vertexCount = vertices.size();
+    _vertexCount = _line.size();
     setVao(vao);
 }
 
-void Box::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
+void Line::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
 {
+    initBuffers();
+
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
     QMatrix4x4 modelViewMatrix = vMatrix * getModelMatrix();
     QOpenGLShaderProgram& prg = getShader();
@@ -85,12 +58,12 @@ void Box::glRender(QMatrix4x4 &vMatrix, QMatrix4x4 &pMatrix)
     prg.setUniformValue("projection_model_view_matrix", pMatrix * modelViewMatrix);
     prg.setUniformValue("normal_matrix", modelViewMatrix.normalMatrix());
     f->glBindVertexArray(getVao());
-    f->glDrawArrays(_drawLines ? GL_LINES : GL_TRIANGLE_STRIP, 0, _vertexCount);
+    f->glDrawArrays(GL_LINES, 0, _vertexCount);
 
     prg.release();
 }
 
-void Box::setLines(bool lines)
+void Line::setLine(std::vector<QVector3D> line)
 {
-    _drawLines = lines;
+    _line = line;
 }

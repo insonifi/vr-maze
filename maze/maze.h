@@ -15,16 +15,18 @@
 class Maze : public Drawable
 {
 public:
-    Maze(unsigned short x = 16, unsigned short = 16);
+    Maze(unsigned short width = 32, unsigned short height = 32);
     QVector3D getRandomPos() const;
     QVector3D collision(QVector3D position, QVector3D movement, BoundingBox observerBox);
     void addObstacle(std::shared_ptr<Aabb> obstacle);
+    void addButton(std::shared_ptr<Aabb> obstacle);
 
 private:
     std::vector<bool> _maze;
     unsigned short _width;
     unsigned short _height;
     std::vector<std::shared_ptr<Aabb>> _aabb_list;
+    std::vector<std::shared_ptr<Aabb>> _btn_list;
     void initMaze();
     std::vector<bool>::reference mazeBlockAt(unsigned short x, unsigned short y);
     void addRandomLoop();
