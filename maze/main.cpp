@@ -27,7 +27,7 @@
 
 #define MAZE 1
 #define CUSTOM_NAV true
-#define WALK_SPEED 4.f
+#define WALK_SPEED .001f
 #define SIZE 0.1f
 
 #ifdef _WIN32
@@ -202,39 +202,36 @@ void Main::update(const QList<QVRObserver*>& observerList)
     }
 
     QVRObserver* observer = observerList.first();
-    QVector3D positionTracking = observer->trackingPosition();
 
     /** Initial observer placement and maze position adjustment */
     if (!_mazeInited)
     {
-        QMatrix4x4 initMazeTransform = QMatrix4x4();
-
-        initMazeTransform.translate(positionTracking);
-        initMazeTransform.translate(-_root->getRandomPos());
-        _root->setGlobalTransform(initMazeTransform);
+		_position = _root->getRandomPos();
         _mazeInited = true;
     }
 
-    QVector3D position = observer->navigationPosition();
+	for (int i = 0; i < QVRManager::deviceCount(); i++) {
+		const QVRDevice& device = QVRManager::device(i);
 
-    QMatrix4x4 translation = QMatrix4x4();
-    translation.translate(position);
-    QMatrix4x4 observerTransform = translation;
+		_orientation = -device.orientation();
+		observer->setTracking(_position, _orientation);
+	}
 
-    observerTransform.translate(positionTracking);
-    _observerBox->setGlobalTransform(observerTransform);
+	QVector3D position = _root->collision(
+		_position
+		, _orientation.rotatedVector(QVector3D(WALK_SPEED * _moveXAxis * millis, 0, WALK_SPEED * _moveZAxis * millis))
+		, _observerBox->getBox()
+	);
 
-    position = _root->collision(
-                position
-                , _orientation.rotatedVector(QVector3D(WALK_SPEED * _moveXAxis * seconds, 0, WALK_SPEED * _moveZAxis * seconds))
-                , _observerBox->getBox()
-                );
+	_position = position;// QVector3D(position.x(), 0, position.z());
 
-    observer->setNavigation(position , _orientation);
+	QMatrix4x4 translation;
+	translation.translate(observer->trackingPosition());
 
+	_observerBox->setGlobalTransform(translation);
+	
      for (std::shared_ptr<Aabb> obstacle : _obstacles)
          obstacle->update(QMatrix4x4(), millis);
-    //_root->update(QMatrix4x4(), millis);
 }
 
 bool Main::wantExit()
@@ -268,20 +265,20 @@ bool Main::initProcess(QVRProcess* /* p */)
             0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _fboDepthTex, 0);
 
-     // Device model data
-     for (int i = 0; i < QVRManager::deviceModelVertexDataCount(); i++) {
-         _devModelVaos.append(setupVao(
-                     QVRManager::deviceModelVertexCount(i),
-                     QVRManager::deviceModelVertexPositions(i),
-                     QVRManager::deviceModelVertexNormals(i),
-                     QVRManager::deviceModelVertexTexCoords(i),
-                     QVRManager::deviceModelVertexIndexCount(i),
-                     QVRManager::deviceModelVertexIndices(i)));
-         _devModelVaoIndices.append(QVRManager::deviceModelVertexIndexCount(i));
-     }
-     for (int i = 0; i < QVRManager::deviceModelTextureCount(); i++) {
-         _devModelTextures.append(setupTex(QVRManager::deviceModelTexture(i)));
-     }
+     //// Device model data
+     //for (int i = 0; i < QVRManager::deviceModelVertexDataCount(); i++) {
+     //    _devModelVaos.append(setupVao(
+     //                QVRManager::deviceModelVertexCount(i),
+     //                QVRManager::deviceModelVertexPositions(i),
+     //                QVRManager::deviceModelVertexNormals(i),
+     //                QVRManager::deviceModelVertexTexCoords(i),
+     //                QVRManager::deviceModelVertexIndexCount(i),
+     //                QVRManager::deviceModelVertexIndices(i)));
+     //    _devModelVaoIndices.append(QVRManager::deviceModelVertexIndexCount(i));
+     //}
+     //for (int i = 0; i < QVRManager::deviceModelTextureCount(); i++) {
+     //    _devModelTextures.append(setupTex(QVRManager::deviceModelTexture(i)));
+     //}
 
      std::shared_ptr<Maze> maze = std::make_shared<Maze>(32, 32);
 
@@ -341,8 +338,9 @@ bool Main::initProcess(QVRProcess* /* p */)
                                     , std::vector<QVector3D>({QVector3D(), QVector3D()})
                                     , QVector3D(1, 1, 0)
                                     );
-
+	
     maze->addChild(_line);
+	
 
    return true;
 }
@@ -364,7 +362,7 @@ void Main::render(QVRWindow* /* w */,
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         QMatrix4x4 projectionMatrix = context.frustum(view).toMatrix4x4();
-        QMatrix4x4 viewMatrix = context.viewMatrix(view);
+        QMatrix4x4 viewMatrix = context.viewMatrixPure(view);
         // Set up shader program
         glEnable(GL_DEPTH_TEST);
         // Render scene
@@ -385,6 +383,7 @@ void Main::render(QVRWindow* /* w */,
                                               }));
 
         // Render device models (optional)
+#if 0
         for (int i = 0; i < QVRManager::deviceCount(); i++) {
             const QVRDevice& device = QVRManager::device(i);
             for (int j = 0; j < device.modelNodeCount(); j++) {
@@ -403,6 +402,7 @@ void Main::render(QVRWindow* /* w */,
                         _devModelVaoIndices[vertexDataIndex]);
             }
         }
+#endif
         // Invalidate depth attachment (to help OpenGL ES performance)
         const GLenum fboInvalidations[] = { GL_DEPTH_ATTACHMENT };
         glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, fboInvalidations);
@@ -722,7 +722,7 @@ int main(int argc, char* argv[])
     format.setOption(QSurfaceFormat::DebugContext);
     QSurfaceFormat::setDefaultFormat(format);
 
-    /* Then start QVR with your app */
+	/* Then start QVR with your app */
     Main qvrapp;
     if (!manager.init(&qvrapp, CUSTOM_NAV)) {
         qCritical("Cannot initialize QVR manager");

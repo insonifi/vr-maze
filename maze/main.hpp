@@ -28,9 +28,11 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QElapsedTimer>
+
 class QImage;
 
 #include <qvr/app.hpp>
+#include <qvr/process.hpp>
 #include <aabb.h>
 #include <drawable.h>
 #include <maze.h>
@@ -71,6 +73,7 @@ private:
     bool _mazeInited = false;         // Flag indicated whether we have already adjusted the maze position
     QPointF _mousePos = QPointF(0, 0);
     QQuaternion _orientation;
+	QVector3D _position;
     float _moveZAxis = 0;               // Move forward/backward
 	float _moveXAxis = 0;				// Move left/right
     std::shared_ptr<Aabb> _observerBox;// Box of the observer
